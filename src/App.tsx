@@ -15,12 +15,14 @@ const DUNGEON_MAP = [
 
 function App() {
   const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 })
+  const [steps, setSteps] = useState(0)
 
   const move = (dx: number, dy: number) => {
     const nx = playerPos.x + dx
     const ny = playerPos.y + dy
     if (DUNGEON_MAP[ny]?.[nx] === '.') {
       setPlayerPos({ x: nx, y: ny })
+      setSteps((s) => s + 1)
     }
   }
 
@@ -51,6 +53,7 @@ function App() {
           <button onClick={() => move(1, 0)}>→</button>
         </div>
       </div>
+      <p className="steps">Steps: {steps}</p>
       <p className="hint">ボタンで移動できます</p>
     </div>
   )
