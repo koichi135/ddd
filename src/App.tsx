@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import './App.css'
 
 const DUNGEON_MAP = [
@@ -103,6 +103,31 @@ function App() {
     },
     [playerPos, hp, mode, builtBases, addMessage],
   )
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault()
+          move(0, -1)
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          move(0, 1)
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          move(-1, 0)
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          move(1, 0)
+          break
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [move])
 
   const handleDungeonCommand = useCallback(
     (cmd: Command) => {
