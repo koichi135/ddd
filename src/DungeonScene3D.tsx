@@ -17,6 +17,7 @@ interface DungeonScene3DProps {
   playerPos: { x: number; y: number }
   playerDir: Direction
   builtBases: Set<string>
+  floor: number
 }
 
 /* ── Camera controller: positions camera at player and looks in direction ── */
@@ -51,14 +52,17 @@ function CameraController({
 function DungeonGeometry({
   dungeonMap,
   builtBases,
+  floor,
 }: {
   dungeonMap: string[]
   builtBases: Set<string>
+  floor: number
 }) {
-  const { walls, floors, baseSpots } = useMemo(() => {
+  const { walls, floors, baseSpots, stairsSpots } = useMemo(() => {
     const w: [number, number][] = []
     const f: [number, number][] = []
     const b: [number, number][] = []
+    const s: [number, number][] = []
     for (let y = 0; y < dungeonMap.length; y++) {
       for (let x = 0; x < dungeonMap[y].length; x++) {
         const cell = dungeonMap[y][x]
@@ -69,10 +73,13 @@ function DungeonGeometry({
           if (cell === 'B') {
             b.push([x, y])
           }
+          if (cell === 'S') {
+            s.push([x, y])
+          }
         }
       }
     }
-    return { walls: w, floors: f, baseSpots: b }
+    return { walls: w, floors: f, baseSpots: b, stairsSpots: s }
   }, [dungeonMap])
 
   const wallMeshRef = useRef<THREE.InstancedMesh>(null)
@@ -117,24 +124,24 @@ function DungeonGeometry({
       {/* Walls */}
       <instancedMesh ref={wallMeshRef} args={[undefined, undefined, walls.length]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#3a3a5a" roughness={0.9} />
+        <meshStandardMaterial color="#4a4a6a" roughness={0.85} />
       </instancedMesh>
 
       {/* Floor */}
       <instancedMesh ref={floorMeshRef} args={[undefined, undefined, floors.length]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#1a1a2e" roughness={1} />
+        <meshStandardMaterial color="#252540" roughness={0.95} />
       </instancedMesh>
 
       {/* Ceiling */}
       <instancedMesh ref={ceilMeshRef} args={[undefined, undefined, floors.length]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#111122" roughness={1} />
+        <meshStandardMaterial color="#1a1a33" roughness={0.95} />
       </instancedMesh>
 
       {/* Base spot markers */}
       {baseSpots.map(([x, y]) => {
-        const key = `${x},${y}`
+        const key = `${floor}:${x},${y}`
         const built = builtBases.has(key)
         return (
           <group key={key}>
@@ -157,6 +164,46 @@ function DungeonGeometry({
           </group>
         )
       })}
+
+      {/* Stairs markers */}
+      {stairsSpots.map(([x, y]) => (
+        <group key={`stairs-${x}-${y}`}>
+          {/* Step 1 (bottom) */}
+          <mesh position={[x - 0.15, 0.05, y]}>
+            <boxGeometry args={[0.6, 0.1, 0.5]} />
+            <meshStandardMaterial
+              color="#8888aa"
+              emissive="#4444aa"
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+          {/* Step 2 (middle) */}
+          <mesh position={[x, 0.15, y]}>
+            <boxGeometry args={[0.5, 0.1, 0.5]} />
+            <meshStandardMaterial
+              color="#7777aa"
+              emissive="#4444aa"
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+          {/* Step 3 (top) */}
+          <mesh position={[x + 0.15, 0.25, y]}>
+            <boxGeometry args={[0.4, 0.1, 0.5]} />
+            <meshStandardMaterial
+              color="#6666aa"
+              emissive="#4444aa"
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+          {/* Glow */}
+          <pointLight
+            position={[x, 0.4, y]}
+            color="#6666ff"
+            intensity={0.6}
+            distance={2.5}
+          />
+        </group>
+      ))}
     </>
   )
 }
@@ -195,9 +242,9 @@ function Torches({ dungeonMap }: { dungeonMap: string[] }) {
         <group key={`torch-${x}-${y}`}>
           <pointLight
             position={[x, 0.8, y]}
-            color="#ff8844"
-            intensity={0.8}
-            distance={3}
+            color="#ff9955"
+            intensity={1.2}
+            distance={4}
           />
           <mesh position={[x, 0.85, y]}>
             <sphereGeometry args={[0.04, 6, 6]} />
@@ -219,16 +266,17 @@ export default function DungeonScene3D({
   playerPos,
   playerDir,
   builtBases,
+  floor,
 }: DungeonScene3DProps) {
   return (
     <Canvas
       camera={{ fov: 75, near: 0.1, far: 20, position: [1, 0.5, 1] }}
       style={{ background: '#050510' }}
     >
-      <ambientLight intensity={0.08} color="#334" />
+      <ambientLight intensity={0.2} color="#556" />
 
       <CameraController playerPos={playerPos} playerDir={playerDir} />
-      <DungeonGeometry dungeonMap={dungeonMap} builtBases={builtBases} />
+      <DungeonGeometry dungeonMap={dungeonMap} builtBases={builtBases} floor={floor} />
       <Torches dungeonMap={dungeonMap} />
     </Canvas>
   )

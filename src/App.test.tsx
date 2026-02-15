@@ -16,7 +16,7 @@ describe('App', () => {
 
   it('renders the game panels', () => {
     render(<App />)
-    expect(screen.getByText('Dungeon')).toBeInTheDocument()
+    expect(screen.getByText('Dungeon B1F')).toBeInTheDocument()
     expect(screen.getByText('Command')).toBeInTheDocument()
     expect(screen.getByText('Message')).toBeInTheDocument()
   })
@@ -68,5 +68,15 @@ describe('App', () => {
     expect(screen.getByText('ぼうぎょ')).toBeInTheDocument()
     expect(screen.getByText(/アイテム/)).toBeInTheDocument()
     expect(screen.getByText('にげる')).toBeInTheDocument()
+  })
+
+  it('displays player level in status bar', () => {
+    render(<App />)
+    expect(screen.getByText('Lv.1')).toBeInTheDocument()
+  })
+
+  it('displays gold counter', () => {
+    render(<App />)
+    expect(screen.getByText('0G')).toBeInTheDocument()
   })
 })

@@ -104,6 +104,10 @@
   background: #3a5a3a;
 }
 
+.minimap-stairs {
+  background: #6666cc;
+}
+
 .minimap-dir {
   color: #f0c040;
   font-size: 0.6rem;
@@ -203,6 +207,14 @@
   color: #ccc;
   font-size: 0.75rem;
   min-width: 60px;
+  text-align: right;
+}
+
+.gold-text {
+  color: #f0c040;
+  font-size: 0.75rem;
+  font-weight: bold;
+  min-width: 50px;
   text-align: right;
 }
 

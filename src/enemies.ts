@@ -6,6 +6,8 @@ export interface EnemyData {
   defense: number
   color: string
   type: 'slime' | 'bat' | 'skeleton'
+  expReward: number
+  goldReward: number
 }
 
 export const ENEMY_TYPES: Omit<EnemyData, 'hp'>[] = [
@@ -16,6 +18,8 @@ export const ENEMY_TYPES: Omit<EnemyData, 'hp'>[] = [
     defense: 2,
     color: '#44cc88',
     type: 'slime',
+    expReward: 5,
+    goldReward: 3,
   },
   {
     name: 'コウモリ',
@@ -24,6 +28,8 @@ export const ENEMY_TYPES: Omit<EnemyData, 'hp'>[] = [
     defense: 1,
     color: '#8844aa',
     type: 'bat',
+    expReward: 7,
+    goldReward: 5,
   },
   {
     name: 'スケルトン',
@@ -32,10 +38,21 @@ export const ENEMY_TYPES: Omit<EnemyData, 'hp'>[] = [
     defense: 5,
     color: '#ccccaa',
     type: 'skeleton',
+    expReward: 12,
+    goldReward: 10,
   },
 ]
 
-export function spawnEnemy(): EnemyData {
+export function spawnEnemy(floor: number = 0): EnemyData {
   const template = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)]
-  return { ...template, hp: template.maxHp }
+  const scale = 1 + floor * 0.3
+  return {
+    ...template,
+    hp: Math.floor(template.maxHp * scale),
+    maxHp: Math.floor(template.maxHp * scale),
+    attack: Math.floor(template.attack * scale),
+    defense: Math.floor(template.defense * scale),
+    expReward: Math.floor(template.expReward * scale),
+    goldReward: Math.floor(template.goldReward * scale),
+  }
 }
