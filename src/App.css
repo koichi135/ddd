@@ -225,6 +225,7 @@
   flex: 2;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .command-list {
@@ -232,7 +233,6 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px;
-  flex: 1;
 }
 
 .command-btn {
@@ -288,7 +288,6 @@
 .direction-pad {
   padding: 8px;
   border-top: 1px solid #333;
-  margin-top: auto;
 }
 
 .dir-row {
@@ -374,35 +373,40 @@
     min-height: 180px;
   }
 
-  /* Command panel fills remaining space */
+  /* Command panel: center content vertically */
   .command-panel {
     flex: 1;
     min-height: 0;
+    justify-content: center;
   }
 
   .command-list {
     padding: 4px 8px;
-    gap: 1px;
+    gap: 2px;
+    flex: none;
   }
 
   .command-btn {
-    padding: 5px 8px;
-    font-size: 0.9rem;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    min-height: 38px;
   }
 
-  /* Direction pad compact */
+  /* Direction pad: close to commands, centered */
   .direction-pad {
-    padding: 4px;
+    padding: 6px 8px;
+    margin-top: 0;
   }
 
   .dir-row {
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    gap: 6px;
   }
 
   .dir-btn {
-    width: 44px;
-    height: 36px;
-    font-size: 1.1rem;
+    width: 52px;
+    height: 44px;
+    font-size: 1.2rem;
   }
 
   /* Message panel shorter */
