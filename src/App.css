@@ -77,9 +77,78 @@
   border-radius: 50%;
 }
 
+.base-spot {
+  background: #2a3a2a;
+  border: 1px dashed #5a8a5a;
+  box-sizing: border-box;
+}
+
+.base-built {
+  background: #3a5a3a;
+  border: 1px solid #80cc80;
+  box-sizing: border-box;
+}
+
+/* ===== HP Bar ===== */
+.hp-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-top: 1px solid #333;
+}
+
+.hp-label {
+  color: #8888cc;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.hp-bar {
+  flex: 1;
+  height: 10px;
+  background: #1a1a2e;
+  border: 1px solid #555;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: #44cc44;
+  transition: width 0.3s ease;
+}
+
+.hp-text {
+  color: #ccc;
+  font-size: 0.75rem;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ===== Camp view ===== */
+.camp-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #0a0a1e;
+}
+
+.camp-line {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #ccc;
+}
+
 /* ===== Command (top-right) ===== */
 .command-panel {
   flex: 2;
+  display: flex;
+  flex-direction: column;
 }
 
 .command-list {
@@ -87,6 +156,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px;
+  flex: 1;
 }
 
 .command-btn {
@@ -119,10 +189,30 @@
   background: #1a1a3e;
 }
 
+.command-btn.disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+
+.command-btn.disabled:hover {
+  background: transparent;
+}
+
+/* ===== Game Over ===== */
+.gameover-text {
+  color: #ff4444;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 16px 0;
+  margin: 0;
+}
+
 /* ===== Direction pad ===== */
 .direction-pad {
   padding: 8px;
   border-top: 1px solid #333;
+  margin-top: auto;
 }
 
 .dir-row {
