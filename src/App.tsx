@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import './App.css'
+import CampScene3D from './CampScene3D'
 
 const DUNGEON_MAP = [
   '##########',
@@ -31,15 +32,6 @@ const CAMP_COMMANDS: { id: CampCommand; label: string }[] = [
   { id: 'rest', label: 'やすむ' },
   { id: 'fish', label: 'つりをする' },
   { id: 'depart', label: 'しゅっぱつ' },
-]
-
-const CAMP_ART = [
-  '        🌙          ',
-  '    ✦       ✦       ',
-  '                    ',
-  '      ⛺             ',
-  '    🔥  🧑           ',
-  '  ～～～～～～～～～～',
 ]
 
 function isBaseSpot(x: number, y: number) {
@@ -205,11 +197,7 @@ function App() {
           </div>
           {mode === 'camp' ? (
             <div className="camp-view">
-              {CAMP_ART.map((line, i) => (
-                <pre key={i} className="camp-line">
-                  {line}
-                </pre>
-              ))}
+              <CampScene3D />
             </div>
           ) : (
             <div className="dungeon">

@@ -129,19 +129,15 @@
 /* ===== Camp view ===== */
 .camp-view {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: #0a0a1e;
+  position: relative;
+  background: #050510;
+  overflow: hidden;
 }
 
-.camp-line {
-  margin: 0;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #ccc;
+.camp-view canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* ===== Command (top-right) ===== */
