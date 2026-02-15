@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import './App.css'
 import CampScene3D from './CampScene3D'
+import DungeonScene3D, { type Direction } from './DungeonScene3D'
 
 const DUNGEON_MAP = [
   '##########',
@@ -34,6 +35,35 @@ const CAMP_COMMANDS: { id: CampCommand; label: string }[] = [
   { id: 'depart', label: 'しゅっぱつ' },
 ]
 
+/* Direction helpers */
+const DIR_DELTA: Record<Direction, { dx: number; dy: number }> = {
+  N: { dx: 0, dy: -1 },
+  S: { dx: 0, dy: 1 },
+  E: { dx: 1, dy: 0 },
+  W: { dx: -1, dy: 0 },
+}
+
+const TURN_LEFT: Record<Direction, Direction> = {
+  N: 'W',
+  W: 'S',
+  S: 'E',
+  E: 'N',
+}
+
+const TURN_RIGHT: Record<Direction, Direction> = {
+  N: 'E',
+  E: 'S',
+  S: 'W',
+  W: 'N',
+}
+
+const DIR_ARROW: Record<Direction, string> = {
+  N: '↑',
+  S: '↓',
+  E: '→',
+  W: '←',
+}
+
 function isBaseSpot(x: number, y: number) {
   return DUNGEON_MAP[y]?.[x] === 'B'
 }
@@ -45,6 +75,7 @@ function isWalkable(x: number, y: number) {
 
 function App() {
   const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 })
+  const [playerDir, setPlayerDir] = useState<Direction>('S')
   const [hp, setHp] = useState(MAX_HP)
   const [steps, setSteps] = useState(0)
   const [mode, setMode] = useState<GameMode>('dungeon')
@@ -62,64 +93,94 @@ function App() {
   const baseKey = `${playerPos.x},${playerPos.y}`
   const baseBuiltHere = builtBases.has(baseKey)
 
-  const move = useCallback(
-    (dx: number, dy: number) => {
-      if (mode !== 'dungeon') return
+  const moveForward = useCallback(() => {
+    if (mode !== 'dungeon') return
+    const { dx, dy } = DIR_DELTA[playerDir]
+    const nx = playerPos.x + dx
+    const ny = playerPos.y + dy
+    if (isWalkable(nx, ny)) {
+      const newHp = Math.max(0, hp - MOVE_COST)
+      setPlayerPos({ x: nx, y: ny })
+      setSteps((s) => s + 1)
+      setHp(newHp)
 
-      const nx = playerPos.x + dx
-      const ny = playerPos.y + dy
-      if (isWalkable(nx, ny)) {
-        const newHp = Math.max(0, hp - MOVE_COST)
-        setPlayerPos({ x: nx, y: ny })
-        setSteps((s) => s + 1)
-        setHp(newHp)
-
-        if (newHp <= 0) {
-          setMode('gameover')
-          addMessage('体力が尽きた... 冒険者は倒れた。')
-          return
-        }
-
-        const msgs: string[] = [`ダンジョンを進んだ... (HP: ${newHp}/${MAX_HP})`]
-        if (isBaseSpot(nx, ny)) {
-          if (builtBases.has(`${nx},${ny}`)) {
-            msgs.push('拠点だ！ ここで休める。')
-          } else {
-            msgs.push('拠点を作れそうな場所だ！')
-          }
-        }
-        msgs.forEach((m) => addMessage(m))
-      } else {
-        addMessage('壁があって進めない！')
+      if (newHp <= 0) {
+        setMode('gameover')
+        addMessage('体力が尽きた... 冒険者は倒れた。')
+        return
       }
-    },
-    [playerPos, hp, mode, builtBases, addMessage],
-  )
+
+      const msgs: string[] = [`ダンジョンを進んだ... (HP: ${newHp}/${MAX_HP})`]
+      if (isBaseSpot(nx, ny)) {
+        if (builtBases.has(`${nx},${ny}`)) {
+          msgs.push('拠点だ！ ここで休める。')
+        } else {
+          msgs.push('拠点を作れそうな場所だ！')
+        }
+      }
+      msgs.forEach((m) => addMessage(m))
+    } else {
+      addMessage('壁があって進めない！')
+    }
+  }, [playerPos, playerDir, hp, mode, builtBases, addMessage])
+
+  const moveBackward = useCallback(() => {
+    if (mode !== 'dungeon') return
+    const { dx, dy } = DIR_DELTA[playerDir]
+    const nx = playerPos.x - dx
+    const ny = playerPos.y - dy
+    if (isWalkable(nx, ny)) {
+      const newHp = Math.max(0, hp - MOVE_COST)
+      setPlayerPos({ x: nx, y: ny })
+      setSteps((s) => s + 1)
+      setHp(newHp)
+
+      if (newHp <= 0) {
+        setMode('gameover')
+        addMessage('体力が尽きた... 冒険者は倒れた。')
+        return
+      }
+
+      addMessage(`後退した... (HP: ${newHp}/${MAX_HP})`)
+    } else {
+      addMessage('壁があって進めない！')
+    }
+  }, [playerPos, playerDir, hp, mode, addMessage])
+
+  const turnLeft = useCallback(() => {
+    if (mode !== 'dungeon') return
+    setPlayerDir((d) => TURN_LEFT[d])
+  }, [mode])
+
+  const turnRight = useCallback(() => {
+    if (mode !== 'dungeon') return
+    setPlayerDir((d) => TURN_RIGHT[d])
+  }, [mode])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowUp':
           e.preventDefault()
-          move(0, -1)
+          moveForward()
           break
         case 'ArrowDown':
           e.preventDefault()
-          move(0, 1)
+          moveBackward()
           break
         case 'ArrowLeft':
           e.preventDefault()
-          move(-1, 0)
+          turnLeft()
           break
         case 'ArrowRight':
           e.preventDefault()
-          move(1, 0)
+          turnRight()
           break
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [move])
+  }, [moveForward, moveBackward, turnLeft, turnRight])
 
   const handleDungeonCommand = useCallback(
     (cmd: Command) => {
@@ -174,6 +235,7 @@ function App() {
 
   const restart = useCallback(() => {
     setPlayerPos({ x: 1, y: 1 })
+    setPlayerDir('S')
     setHp(MAX_HP)
     setSteps(0)
     setMode('dungeon')
@@ -200,24 +262,34 @@ function App() {
               <CampScene3D />
             </div>
           ) : (
-            <div className="dungeon">
-              {DUNGEON_MAP.map((row, y) => (
-                <div key={y} className="row">
-                  {row.split('').map((cell, x) => {
-                    const isPlayer =
-                      playerPos.x === x && playerPos.y === y
-                    const isBase = cell === 'B'
-                    const built = builtBases.has(`${x},${y}`)
-                    let cls = 'cell '
-                    if (isPlayer) cls += 'player'
-                    else if (cell === '#') cls += 'wall'
-                    else if (isBase && built) cls += 'base-built'
-                    else if (isBase) cls += 'base-spot'
-                    else cls += 'floor'
-                    return <span key={x} className={cls} />
-                  })}
-                </div>
-              ))}
+            <div className="dungeon-3d-container">
+              <DungeonScene3D
+                dungeonMap={DUNGEON_MAP}
+                playerPos={playerPos}
+                playerDir={playerDir}
+                builtBases={builtBases}
+              />
+              {/* Minimap overlay */}
+              <div className="minimap">
+                {DUNGEON_MAP.map((row, y) => (
+                  <div key={y} className="minimap-row">
+                    {row.split('').map((cell, x) => {
+                      const isPlayer =
+                        playerPos.x === x && playerPos.y === y
+                      const isBase = cell === 'B'
+                      const built = builtBases.has(`${x},${y}`)
+                      let cls = 'minimap-cell '
+                      if (isPlayer) cls += 'minimap-player'
+                      else if (cell === '#') cls += 'minimap-wall'
+                      else if (isBase && built) cls += 'minimap-base-built'
+                      else if (isBase) cls += 'minimap-base-spot'
+                      else cls += 'minimap-floor'
+                      return <span key={x} className={cls} />
+                    })}
+                  </div>
+                ))}
+                <div className="minimap-dir">{DIR_ARROW[playerDir]}</div>
+              </div>
             </div>
           )}
           {/* HP bar */}
@@ -272,23 +344,23 @@ function App() {
             </div>
           )}
 
-          {/* Direction pad — always visible in dungeon mode */}
+          {/* Direction pad — Wizardry style */}
           {mode === 'dungeon' && (
             <div className="direction-pad">
               <div className="dir-row">
-                <button className="dir-btn" onClick={() => move(0, -1)}>
+                <button className="dir-btn" onClick={moveForward}>
                   ↑
                 </button>
               </div>
               <div className="dir-row">
-                <button className="dir-btn" onClick={() => move(-1, 0)}>
-                  ←
+                <button className="dir-btn dir-turn" onClick={turnLeft}>
+                  ◁
                 </button>
-                <button className="dir-btn" onClick={() => move(0, 1)}>
+                <button className="dir-btn" onClick={moveBackward}>
                   ↓
                 </button>
-                <button className="dir-btn" onClick={() => move(1, 0)}>
-                  →
+                <button className="dir-btn dir-turn" onClick={turnRight}>
+                  ▷
                 </button>
               </div>
             </div>

@@ -45,48 +45,70 @@
   flex: 3;
 }
 
-.dungeon {
+/* ===== 3D Dungeon view ===== */
+.dungeon-3d-container {
   flex: 1;
+  position: relative;
+  background: #050510;
+  overflow: hidden;
+}
+
+.dungeon-3d-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===== Minimap overlay ===== */
+.minimap {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #8888cc;
+  border-radius: 3px;
+  padding: 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 8px;
 }
 
-.row {
+.minimap-row {
   display: flex;
 }
 
-.cell {
-  width: 28px;
-  height: 28px;
+.minimap-cell {
+  width: 8px;
+  height: 8px;
   display: inline-block;
 }
 
-.wall {
+.minimap-wall {
   background: #3a3a5a;
 }
 
-.floor {
+.minimap-floor {
   background: #1a1a2e;
 }
 
-.player {
+.minimap-player {
   background: #f0c040;
   border-radius: 50%;
 }
 
-.base-spot {
+.minimap-base-spot {
   background: #2a3a2a;
-  border: 1px dashed #5a8a5a;
-  box-sizing: border-box;
 }
 
-.base-built {
+.minimap-base-built {
   background: #3a5a3a;
-  border: 1px solid #80cc80;
-  box-sizing: border-box;
+}
+
+.minimap-dir {
+  color: #f0c040;
+  font-size: 0.6rem;
+  line-height: 1;
+  margin-top: 1px;
 }
 
 /* ===== HP Bar ===== */
@@ -231,6 +253,12 @@
 
 .dir-btn:active {
   background: #3a3a6e;
+}
+
+.dir-turn {
+  font-size: 1rem;
+  background: #1a1a2e;
+  border-color: #6666aa;
 }
 
 /* ===== Message (bottom) ===== */

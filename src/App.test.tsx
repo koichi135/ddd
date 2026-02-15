@@ -10,19 +10,19 @@ describe('App', () => {
     expect(screen.getByText('Message')).toBeInTheDocument()
   })
 
-  it('moves player with arrow keys', () => {
+  it('moves player forward with ArrowUp (facing south by default)', () => {
     render(<App />)
-    // Player starts at (1,1). Press ArrowRight to move to (2,1)
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    expect(
-      screen.getByText(/ダンジョンを進んだ/),
-    ).toBeInTheDocument()
+    // Player starts at (1,1) facing South. ArrowUp = move forward = move to (1,2)
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(screen.getByText(/ダンジョンを進んだ/)).toBeInTheDocument()
   })
 
-  it('shows wall message when blocked by arrow key', () => {
+  it('shows wall message when moving into a wall', () => {
     render(<App />)
-    // Player starts at (1,1). Press ArrowUp to hit wall at (1,0)
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    // Player starts at (1,1) facing South.
+    // Turn left (now facing East), then move backward = move West to (0,1) = wall
+    fireEvent.keyDown(window, { key: 'ArrowRight' }) // turn right → facing West
+    fireEvent.keyDown(window, { key: 'ArrowUp' }) // move forward West → (0,1) = wall
     expect(screen.getByText('壁があって進めない！')).toBeInTheDocument()
   })
 })
