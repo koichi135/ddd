@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  height: 100vh;
+  height: 100dvh;
   max-height: 700px;
   font-family: 'Courier New', monospace;
 }
@@ -341,4 +341,122 @@
 
 .message-log p.latest {
   color: #fff;
+}
+
+/* ===== Mobile responsive ===== */
+@media (max-width: 600px) {
+  #root {
+    padding: 0;
+  }
+
+  .game-container {
+    height: 100dvh;
+    max-height: none;
+    gap: 2px;
+    border-radius: 0;
+  }
+
+  .panel {
+    border-width: 2px;
+    border-radius: 0;
+  }
+
+  /* Stack top panel vertically */
+  .top-panel {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* 3D view area */
+  .dungeon-panel {
+    flex: none;
+    height: 40dvh;
+    min-height: 180px;
+  }
+
+  /* Command panel fills remaining space */
+  .command-panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .command-list {
+    padding: 4px 8px;
+    gap: 1px;
+  }
+
+  .command-btn {
+    padding: 5px 8px;
+    font-size: 0.9rem;
+  }
+
+  /* Direction pad compact */
+  .direction-pad {
+    padding: 4px;
+  }
+
+  .dir-row {
+    margin-bottom: 2px;
+  }
+
+  .dir-btn {
+    width: 44px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  /* Message panel shorter */
+  .message-panel {
+    height: 90px;
+  }
+
+  .message-log {
+    padding: 4px 8px;
+  }
+
+  .message-log p {
+    font-size: 0.8rem;
+    padding: 1px 0;
+    line-height: 1.3;
+  }
+
+  /* HP bar compact */
+  .hp-bar-container {
+    padding: 3px 8px;
+    gap: 6px;
+  }
+
+  .hp-bar {
+    height: 8px;
+  }
+
+  .hp-text {
+    font-size: 0.7rem;
+    min-width: 50px;
+  }
+
+  /* Minimap smaller */
+  .minimap-cell {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Enemy status compact */
+  .enemy-status {
+    padding: 3px 6px;
+    gap: 6px;
+  }
+
+  .enemy-name {
+    font-size: 0.7rem;
+  }
+
+  .enemy-hp-bar {
+    height: 6px;
+  }
+
+  .enemy-hp-text {
+    font-size: 0.65rem;
+    min-width: 40px;
+  }
 }
