@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from 'react'
 import './App.css'
 import CampScene3D from './CampScene3D'
 import DungeonScene3D, { type Direction } from './DungeonScene3D'
+import BattleScene3D from './BattleScene3D'
+import { type EnemyData, spawnEnemy } from './enemies'
 
 const DUNGEON_MAP = [
   '##########',
@@ -17,11 +19,18 @@ const DUNGEON_MAP = [
 
 const MAX_HP = 100
 const MOVE_COST = 5
+const PLAYER_ATK = 15
+const PLAYER_DEF = 5
+const ENCOUNTER_RATE = 0.25
+const MAX_POTIONS = 3
+const POTION_HEAL = 30
 
-type GameMode = 'dungeon' | 'camp' | 'gameover'
+type GameMode = 'dungeon' | 'camp' | 'battle' | 'gameover'
+type BattlePhase = 'player' | 'enemy' | 'win' | 'lose'
 
 type Command = 'build' | 'search' | 'status'
 type CampCommand = 'rest' | 'fish' | 'depart'
+type BattleCommand = 'attack' | 'defend' | 'item' | 'run'
 
 const DUNGEON_COMMANDS: { id: Command; label: string }[] = [
   { id: 'build', label: 'きょてんをつくる' },
@@ -33,6 +42,13 @@ const CAMP_COMMANDS: { id: CampCommand; label: string }[] = [
   { id: 'rest', label: 'やすむ' },
   { id: 'fish', label: 'つりをする' },
   { id: 'depart', label: 'しゅっぱつ' },
+]
+
+const BATTLE_COMMANDS: { id: BattleCommand; label: string }[] = [
+  { id: 'attack', label: 'こうげき' },
+  { id: 'defend', label: 'ぼうぎょ' },
+  { id: 'item', label: 'アイテム' },
+  { id: 'run', label: 'にげる' },
 ]
 
 /* Direction helpers */
@@ -73,17 +89,29 @@ function isWalkable(x: number, y: number) {
   return cell === '.' || cell === 'B'
 }
 
+function calcDamage(atk: number, def: number): number {
+  const base = Math.max(1, atk - def)
+  const variance = Math.floor(Math.random() * 5) - 2
+  return Math.max(1, base + variance)
+}
+
 function App() {
   const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 })
   const [playerDir, setPlayerDir] = useState<Direction>('S')
   const [hp, setHp] = useState(MAX_HP)
   const [steps, setSteps] = useState(0)
+  const [potions, setPotions] = useState(MAX_POTIONS)
   const [mode, setMode] = useState<GameMode>('dungeon')
   const [builtBases, setBuiltBases] = useState<Set<string>>(new Set())
   const [messages, setMessages] = useState<string[]>([
     'ダンジョンに足を踏み入れた...',
     `体力: ${MAX_HP}/${MAX_HP}`,
   ])
+
+  /* Battle state */
+  const [enemy, setEnemy] = useState<EnemyData | null>(null)
+  const [battlePhase, setBattlePhase] = useState<BattlePhase>('player')
+  const [defending, setDefending] = useState(false)
 
   const addMessage = useCallback((msg: string) => {
     setMessages((prev) => [...prev.slice(-4), msg])
@@ -93,6 +121,17 @@ function App() {
   const baseKey = `${playerPos.x},${playerPos.y}`
   const baseBuiltHere = builtBases.has(baseKey)
 
+  /* ── Start encounter ── */
+  const startBattle = useCallback(() => {
+    const e = spawnEnemy()
+    setEnemy(e)
+    setBattlePhase('player')
+    setDefending(false)
+    setMode('battle')
+    addMessage(`${e.name}が現れた！`)
+  }, [addMessage])
+
+  /* ── Movement (may trigger encounter) ── */
   const moveForward = useCallback(() => {
     if (mode !== 'dungeon') return
     const { dx, dy } = DIR_DELTA[playerDir]
@@ -119,10 +158,16 @@ function App() {
         }
       }
       msgs.forEach((m) => addMessage(m))
+
+      /* Random encounter check */
+      if (!isBaseSpot(nx, ny) && Math.random() < ENCOUNTER_RATE) {
+        /* Use setTimeout to let the move message display first */
+        setTimeout(() => startBattle(), 300)
+      }
     } else {
       addMessage('壁があって進めない！')
     }
-  }, [playerPos, playerDir, hp, mode, builtBases, addMessage])
+  }, [playerPos, playerDir, hp, mode, builtBases, addMessage, startBattle])
 
   const moveBackward = useCallback(() => {
     if (mode !== 'dungeon') return
@@ -142,10 +187,14 @@ function App() {
       }
 
       addMessage(`後退した... (HP: ${newHp}/${MAX_HP})`)
+
+      if (!isBaseSpot(nx, ny) && Math.random() < ENCOUNTER_RATE) {
+        setTimeout(() => startBattle(), 300)
+      }
     } else {
       addMessage('壁があって進めない！')
     }
-  }, [playerPos, playerDir, hp, mode, addMessage])
+  }, [playerPos, playerDir, hp, mode, addMessage, startBattle])
 
   const turnLeft = useCallback(() => {
     if (mode !== 'dungeon') return
@@ -182,6 +231,113 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [moveForward, moveBackward, turnLeft, turnRight])
 
+  /* ── Enemy turn ── */
+  const enemyTurn = useCallback(
+    (currentHp: number, currentEnemy: EnemyData) => {
+      const defMultiplier = defending ? 0.5 : 1
+      const rawDmg = calcDamage(currentEnemy.attack, PLAYER_DEF)
+      const dmg = Math.max(1, Math.floor(rawDmg * defMultiplier))
+      const newHp = Math.max(0, currentHp - dmg)
+      setHp(newHp)
+      setDefending(false)
+
+      if (defending) {
+        addMessage(
+          `${currentEnemy.name}の攻撃！ 防御で${dmg}ダメージに軽減！ (HP: ${newHp}/${MAX_HP})`,
+        )
+      } else {
+        addMessage(
+          `${currentEnemy.name}の攻撃！ ${dmg}のダメージ！ (HP: ${newHp}/${MAX_HP})`,
+        )
+      }
+
+      if (newHp <= 0) {
+        setBattlePhase('lose')
+        addMessage('冒険者は倒れた...')
+      } else {
+        setBattlePhase('player')
+      }
+    },
+    [defending, addMessage],
+  )
+
+  /* ── Battle commands ── */
+  const handleBattleCommand = useCallback(
+    (cmd: BattleCommand) => {
+      if (battlePhase !== 'player' || !enemy) return
+
+      switch (cmd) {
+        case 'attack': {
+          const dmg = calcDamage(PLAYER_ATK, enemy.defense)
+          const newEnemyHp = Math.max(0, enemy.hp - dmg)
+          const updatedEnemy = { ...enemy, hp: newEnemyHp }
+          setEnemy(updatedEnemy)
+          addMessage(`冒険者の攻撃！ ${enemy.name}に${dmg}のダメージ！`)
+
+          if (newEnemyHp <= 0) {
+            setBattlePhase('win')
+            addMessage(`${enemy.name}を倒した！`)
+          } else {
+            setBattlePhase('enemy')
+            setTimeout(() => enemyTurn(hp, updatedEnemy), 600)
+          }
+          break
+        }
+
+        case 'defend': {
+          setDefending(true)
+          addMessage('冒険者は身を守っている...')
+          setBattlePhase('enemy')
+          setTimeout(() => enemyTurn(hp, enemy), 600)
+          break
+        }
+
+        case 'item': {
+          if (potions <= 0) {
+            addMessage('ポーションがない！')
+            return
+          }
+          const healAmount = Math.min(POTION_HEAL, MAX_HP - hp)
+          const newHp = hp + healAmount
+          setHp(newHp)
+          setPotions((p) => p - 1)
+          addMessage(
+            `ポーションを使った！ HPが${healAmount}回復！ (HP: ${newHp}/${MAX_HP})`,
+          )
+          setBattlePhase('enemy')
+          setTimeout(() => enemyTurn(newHp, enemy), 600)
+          break
+        }
+
+        case 'run': {
+          if (Math.random() < 0.5) {
+            addMessage('うまく逃げ切った！')
+            setEnemy(null)
+            setMode('dungeon')
+          } else {
+            addMessage('逃げられなかった！')
+            setBattlePhase('enemy')
+            setTimeout(() => enemyTurn(hp, enemy), 600)
+          }
+          break
+        }
+      }
+    },
+    [battlePhase, enemy, hp, potions, addMessage, enemyTurn],
+  )
+
+  /* ── Battle end handlers ── */
+  const handleBattleWin = useCallback(() => {
+    setEnemy(null)
+    setMode('dungeon')
+    addMessage('戦闘に勝利した！ ダンジョンを進もう。')
+  }, [addMessage])
+
+  const handleBattleLose = useCallback(() => {
+    setMode('gameover')
+    addMessage('体力が尽きた... 冒険者は倒れた。')
+  }, [addMessage])
+
   const handleDungeonCommand = useCallback(
     (cmd: Command) => {
       switch (cmd) {
@@ -202,12 +358,12 @@ function App() {
           break
         case 'status':
           addMessage(
-            `冒険者 ── HP: ${hp}/${MAX_HP}  Steps: ${steps}  拠点数: ${builtBases.size}`,
+            `冒険者 ── HP: ${hp}/${MAX_HP}  ATK: ${PLAYER_ATK}  DEF: ${PLAYER_DEF}  歩数: ${steps}  ポーション: ${potions}`,
           )
           break
       }
     },
-    [onBaseSpot, baseBuiltHere, baseKey, hp, steps, builtBases, addMessage],
+    [onBaseSpot, baseBuiltHere, baseKey, hp, steps, potions, addMessage],
   )
 
   const handleCampCommand = useCallback(
@@ -215,7 +371,9 @@ function App() {
       switch (cmd) {
         case 'rest':
           setHp(MAX_HP)
-          addMessage(`ぐっすり眠った... HPが全回復した！ (HP: ${MAX_HP}/${MAX_HP})`)
+          addMessage(
+            `ぐっすり眠った... HPが全回復した！ (HP: ${MAX_HP}/${MAX_HP})`,
+          )
           break
         case 'fish':
           if (Math.random() < 0.6) {
@@ -238,8 +396,10 @@ function App() {
     setPlayerDir('S')
     setHp(MAX_HP)
     setSteps(0)
+    setPotions(MAX_POTIONS)
     setMode('dungeon')
     setBuiltBases(new Set())
+    setEnemy(null)
     setMessages(['目を覚ました... もう一度挑戦だ。', `体力: ${MAX_HP}/${MAX_HP}`])
   }, [])
 
@@ -249,17 +409,38 @@ function App() {
       ? 'きょてんに入る'
       : 'きょてんをつくる'
 
+  /* Panel title */
+  const panelTitle =
+    mode === 'camp' ? 'Camp' : mode === 'battle' ? 'Battle' : 'Dungeon'
+
   return (
     <div className="game-container">
       <div className="top-panel">
-        {/* ===== Left: Dungeon / Camp view ===== */}
+        {/* ===== Left: Scene view ===== */}
         <div className="panel dungeon-panel">
-          <div className="panel-title">
-            {mode === 'camp' ? 'Camp' : 'Dungeon'}
-          </div>
+          <div className="panel-title">{panelTitle}</div>
           {mode === 'camp' ? (
             <div className="camp-view">
               <CampScene3D />
+            </div>
+          ) : mode === 'battle' && enemy ? (
+            <div className="battle-view">
+              <BattleScene3D enemy={enemy} />
+              {/* Enemy HP bar overlay */}
+              <div className="enemy-status">
+                <span className="enemy-name">{enemy.name}</span>
+                <div className="enemy-hp-bar">
+                  <div
+                    className="enemy-hp-fill"
+                    style={{
+                      width: `${(enemy.hp / enemy.maxHp) * 100}%`,
+                    }}
+                  />
+                </div>
+                <span className="enemy-hp-text">
+                  {enemy.hp}/{enemy.maxHp}
+                </span>
+              </div>
             </div>
           ) : (
             <div className="dungeon-3d-container">
@@ -328,6 +509,40 @@ function App() {
                   {cmd.label}
                 </button>
               ))}
+            </div>
+          ) : mode === 'battle' ? (
+            <div className="command-list">
+              {battlePhase === 'win' ? (
+                <button
+                  className="command-btn selected"
+                  onClick={handleBattleWin}
+                >
+                  すすむ
+                </button>
+              ) : battlePhase === 'lose' ? (
+                <button
+                  className="command-btn selected"
+                  onClick={handleBattleLose}
+                >
+                  つづく...
+                </button>
+              ) : (
+                BATTLE_COMMANDS.map((cmd) => (
+                  <button
+                    key={cmd.id}
+                    className={`command-btn ${battlePhase !== 'player' ? 'disabled' : ''} ${cmd.id === 'item' && potions <= 0 ? 'disabled' : ''}`}
+                    onClick={() => handleBattleCommand(cmd.id)}
+                    disabled={
+                      battlePhase !== 'player' ||
+                      (cmd.id === 'item' && potions <= 0)
+                    }
+                  >
+                    {cmd.id === 'item'
+                      ? `アイテム (${potions})`
+                      : cmd.label}
+                  </button>
+                ))
+              )}
             </div>
           ) : (
             <div className="command-list">

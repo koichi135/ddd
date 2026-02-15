@@ -111,6 +111,64 @@
   margin-top: 1px;
 }
 
+/* ===== Battle view ===== */
+.battle-view {
+  flex: 1;
+  position: relative;
+  background: #050510;
+  overflow: hidden;
+}
+
+.battle-view canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===== Enemy status overlay ===== */
+.enemy-status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #cc4444;
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
+.enemy-name {
+  color: #ff8888;
+  font-size: 0.75rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.enemy-hp-bar {
+  flex: 1;
+  height: 8px;
+  background: #1a1a2e;
+  border: 1px solid #555;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.enemy-hp-fill {
+  height: 100%;
+  background: #cc4444;
+  transition: width 0.3s ease;
+}
+
+.enemy-hp-text {
+  color: #ccc;
+  font-size: 0.7rem;
+  min-width: 50px;
+  text-align: right;
+}
+
 /* ===== HP Bar ===== */
 .hp-bar-container {
   display: flex;
