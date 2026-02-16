@@ -1,4 +1,5 @@
 import initSqlJs, { type Database } from 'sql.js'
+import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -110,7 +111,9 @@ export class GameDatabase {
 
   /** Initialize sql.js and open (or create) the database */
   static async open(): Promise<GameDatabase> {
-    const SQL = await initSqlJs()
+    const SQL = await initSqlJs({
+      locateFile: () => sqlWasmUrl,
+    })
 
     // Restore from localStorage if available
     const stored = localStorage.getItem(STORAGE_KEY)
