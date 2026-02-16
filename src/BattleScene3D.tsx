@@ -269,7 +269,7 @@ function BattleGround() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
       <planeGeometry args={[10, 10]} />
-      <meshStandardMaterial color="#2a2a40" />
+      <meshStandardMaterial color="#3a3a58" />
     </mesh>
   )
 }
@@ -279,16 +279,16 @@ export default function BattleScene3D({ enemy }: { enemy: EnemyData }) {
   return (
     <Canvas
       camera={{ position: [0, 1, 4], fov: 55 }}
-      style={{ background: '#0a0a1a' }}
+      style={{ background: '#0a0a20' }}
     >
-      <ambientLight intensity={0.5} color="#667" />
-      <directionalLight position={[2, 3, 2]} intensity={1.0} color="#aaaadd" />
-      <directionalLight position={[-2, 2, -1]} intensity={0.4} color="#8888cc" />
+      <ambientLight intensity={0.5} color="#889" />
+      <directionalLight position={[2, 3, 2]} intensity={1.2} color="#aaaadd" />
+      <directionalLight position={[-2, 2, -1]} intensity={0.5} color="#8888cc" />
       <pointLight
         position={[0, 2, 1]}
-        color="#ff8866"
-        intensity={1.2}
-        distance={8}
+        color="#ffaa66"
+        intensity={2}
+        distance={10}
       />
 
       <BattleGround />
