@@ -5,9 +5,10 @@ export interface EnemyData {
   attack: number
   defense: number
   color: string
-  type: 'slime' | 'bat' | 'skeleton'
+  type: 'slime' | 'bat' | 'skeleton' | 'boss'
   expReward: number
   goldReward: number
+  isBoss?: boolean
 }
 
 export const ENEMY_TYPES: Omit<EnemyData, 'hp'>[] = [
@@ -54,5 +55,20 @@ export function spawnEnemy(floor: number = 0): EnemyData {
     defense: Math.floor(template.defense * scale),
     expReward: Math.floor(template.expReward * scale),
     goldReward: Math.floor(template.goldReward * scale),
+  }
+}
+
+export function spawnBoss(): EnemyData {
+  return {
+    name: 'ダークドラゴン',
+    hp: 300,
+    maxHp: 300,
+    attack: 35,
+    defense: 15,
+    color: '#cc2244',
+    type: 'boss',
+    expReward: 200,
+    goldReward: 500,
+    isBoss: true,
   }
 }

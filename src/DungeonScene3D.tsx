@@ -58,11 +58,12 @@ function DungeonGeometry({
   builtBases: Set<string>
   floor: number
 }) {
-  const { walls, floors, baseSpots, stairsSpots } = useMemo(() => {
+  const { walls, floors, baseSpots, stairsSpots, bossSpots } = useMemo(() => {
     const w: [number, number][] = []
     const f: [number, number][] = []
     const b: [number, number][] = []
     const s: [number, number][] = []
+    const k: [number, number][] = []
     for (let y = 0; y < dungeonMap.length; y++) {
       for (let x = 0; x < dungeonMap[y].length; x++) {
         const cell = dungeonMap[y][x]
@@ -76,10 +77,13 @@ function DungeonGeometry({
           if (cell === 'S') {
             s.push([x, y])
           }
+          if (cell === 'K') {
+            k.push([x, y])
+          }
         }
       }
     }
-    return { walls: w, floors: f, baseSpots: b, stairsSpots: s }
+    return { walls: w, floors: f, baseSpots: b, stairsSpots: s, bossSpots: k }
   }, [dungeonMap])
 
   const wallMeshRef = useRef<THREE.InstancedMesh>(null)
@@ -201,6 +205,26 @@ function DungeonGeometry({
             color="#6666ff"
             intensity={0.6}
             distance={2.5}
+          />
+        </group>
+      ))}
+
+      {/* Boss markers */}
+      {bossSpots.map(([x, y]) => (
+        <group key={`boss-${x}-${y}`}>
+          <mesh position={[x, 0.01, y]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.8, 0.8]} />
+            <meshStandardMaterial
+              color="#cc2244"
+              emissive="#ff0022"
+              emissiveIntensity={1.5}
+            />
+          </mesh>
+          <pointLight
+            position={[x, 0.5, y]}
+            color="#ff2244"
+            intensity={1.5}
+            distance={4}
           />
         </group>
       ))}

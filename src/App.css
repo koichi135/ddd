@@ -108,6 +108,10 @@
   background: #6666cc;
 }
 
+.minimap-boss {
+  background: #cc2244;
+}
+
 .minimap-dir {
   color: #f0c040;
   font-size: 0.6rem;

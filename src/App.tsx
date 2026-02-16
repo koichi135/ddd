@@ -3,10 +3,10 @@ import './App.css'
 import CampScene3D from './CampScene3D'
 import DungeonScene3D, { type Direction } from './DungeonScene3D'
 import BattleScene3D from './BattleScene3D'
-import { type EnemyData, spawnEnemy } from './enemies'
+import { type EnemyData, spawnEnemy, spawnBoss } from './enemies'
 
 /* ── Floor maps ── */
-const FLOOR_MAPS: string[][] = [
+const NORMAL_FLOORS: string[][] = [
   [
     '##########',
     '#........#',
@@ -40,7 +40,32 @@ const FLOOR_MAPS: string[][] = [
     '#....S.B.#',
     '##########',
   ],
+  [
+    '##########',
+    '#........#',
+    '#.#.####.#',
+    '#.#......#',
+    '#.###.##.#',
+    '#......#.#',
+    '#.####.#.#',
+    '#.B..S...#',
+    '##########',
+  ],
 ]
+
+const BOSS_FLOOR: string[] = [
+  '##########',
+  '#........#',
+  '#.######.#',
+  '#.#....#.#',
+  '#.#.K..#.#',
+  '#.#....#.#',
+  '#.#..#...#',
+  '#.B......#',
+  '##########',
+]
+
+const BOSS_FLOOR_INDEX = 4
 
 const BASE_MAX_HP = 100
 const MOVE_COST = 5
@@ -107,8 +132,15 @@ const DIR_ARROW: Record<Direction, string> = {
   W: '←',
 }
 
-function getFloorMap(floor: number): string[] {
-  return FLOOR_MAPS[floor % FLOOR_MAPS.length]
+function getFloorMap(floor: number, bossDefeated: boolean): string[] {
+  if (floor === BOSS_FLOOR_INDEX) {
+    if (bossDefeated) {
+      /* Replace boss marker with stairs after boss defeated */
+      return BOSS_FLOOR.map((row) => row.replace('K', 'S'))
+    }
+    return BOSS_FLOOR
+  }
+  return NORMAL_FLOORS[floor % NORMAL_FLOORS.length]
 }
 
 function isBaseSpot(map: string[], x: number, y: number) {
@@ -119,9 +151,13 @@ function isStairs(map: string[], x: number, y: number) {
   return map[y]?.[x] === 'S'
 }
 
+function isBossSpot(map: string[], x: number, y: number) {
+  return map[y]?.[x] === 'K'
+}
+
 function isWalkable(map: string[], x: number, y: number) {
   const cell = map[y]?.[x]
-  return cell === '.' || cell === 'B' || cell === 'S'
+  return cell === '.' || cell === 'B' || cell === 'S' || cell === 'K'
 }
 
 function calcDamage(atk: number, def: number): number {
@@ -164,6 +200,7 @@ function App() {
     y: number
     floor: number
   } | null>(null)
+  const [bossDefeated, setBossDefeated] = useState(false)
   const [messages, setMessages] = useState<string[]>([
     'ダンジョンに足を踏み入れた...',
     `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
@@ -174,7 +211,7 @@ function App() {
   const [battlePhase, setBattlePhase] = useState<BattlePhase>('player')
   const [defending, setDefending] = useState(false)
 
-  const dungeonMap = getFloorMap(floor)
+  const dungeonMap = getFloorMap(floor, bossDefeated)
   const maxHp = getMaxHp(level)
   const playerAtk = getAtk(level)
   const playerDef = getDef(level)
@@ -223,6 +260,17 @@ function App() {
     addMessage(`${e.name}が現れた！`)
   }, [addMessage, floor])
 
+  /* ── Start boss battle ── */
+  const startBossBattle = useCallback(() => {
+    const boss = spawnBoss()
+    setEnemy(boss)
+    setBattlePhase('player')
+    setDefending(false)
+    setMode('battle')
+    addMessage('地面が揺れている...')
+    addMessage(`${boss.name}が立ちはだかった！`)
+  }, [addMessage])
+
   /* ── Go to next floor via stairs ── */
   const descendStairs = useCallback(() => {
     const nextFloor = floor + 1
@@ -261,7 +309,16 @@ function App() {
       if (isStairs(dungeonMap, nx, ny)) {
         msgs.push('階段がある！ 次の階へ降りられる。')
       }
+      if (isBossSpot(dungeonMap, nx, ny)) {
+        msgs.push('強大な気配を感じる...！')
+      }
       msgs.forEach((m) => addMessage(m))
+
+      /* Boss encounter (immediate) */
+      if (isBossSpot(dungeonMap, nx, ny) && !bossDefeated) {
+        setTimeout(() => startBossBattle(), 300)
+        return
+      }
 
       /* Random encounter check */
       if (
@@ -283,8 +340,10 @@ function App() {
     dungeonMap,
     floor,
     builtBases,
+    bossDefeated,
     addMessage,
     startBattle,
+    startBossBattle,
   ])
 
   const moveBackward = useCallback(() => {
@@ -306,6 +365,12 @@ function App() {
 
       addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
 
+      /* Boss encounter (immediate) */
+      if (isBossSpot(dungeonMap, nx, ny) && !bossDefeated) {
+        setTimeout(() => startBossBattle(), 300)
+        return
+      }
+
       if (
         !isBaseSpot(dungeonMap, nx, ny) &&
         !isStairs(dungeonMap, nx, ny) &&
@@ -316,7 +381,18 @@ function App() {
     } else {
       addMessage('壁があって進めない！')
     }
-  }, [playerPos, playerDir, hp, maxHp, mode, dungeonMap, addMessage, startBattle])
+  }, [
+    playerPos,
+    playerDir,
+    hp,
+    maxHp,
+    mode,
+    dungeonMap,
+    bossDefeated,
+    addMessage,
+    startBattle,
+    startBossBattle,
+  ])
 
   const turnLeft = useCallback(() => {
     if (mode !== 'dungeon') return
@@ -472,10 +548,16 @@ function App() {
 
   /* ── Battle end handlers ── */
   const handleBattleWin = useCallback(() => {
+    const wasBoss = enemy?.isBoss
     setEnemy(null)
     setMode('dungeon')
-    addMessage('戦闘に勝利した！ ダンジョンを進もう。')
-  }, [addMessage])
+    if (wasBoss) {
+      setBossDefeated(true)
+      addMessage('ボスを討伐した！！ 階段が現れた...')
+    } else {
+      addMessage('戦闘に勝利した！ ダンジョンを進もう。')
+    }
+  }, [addMessage, enemy])
 
   const handleBattleLose = useCallback(() => {
     setMode('gameover')
@@ -602,6 +684,7 @@ function App() {
       setMode('dungeon')
       setBuiltBases(new Set())
       setLastRestedBase(null)
+      setBossDefeated(false)
       setEnemy(null)
       setMessages([
         '目を覚ました... もう一度挑戦だ。',
@@ -675,10 +758,12 @@ function App() {
                         playerPos.x === x && playerPos.y === y
                       const isBase = cell === 'B'
                       const isStairCell = cell === 'S'
+                      const isBossCell = cell === 'K'
                       const built = builtBases.has(`${floor}:${x},${y}`)
                       let cls = 'minimap-cell '
                       if (isPlayer) cls += 'minimap-player'
                       else if (cell === '#') cls += 'minimap-wall'
+                      else if (isBossCell) cls += 'minimap-boss'
                       else if (isStairCell) cls += 'minimap-stairs'
                       else if (isBase && built) cls += 'minimap-base-built'
                       else if (isBase) cls += 'minimap-base-spot'
@@ -748,21 +833,25 @@ function App() {
                   つづく...
                 </button>
               ) : (
-                BATTLE_COMMANDS.map((cmd) => (
-                  <button
-                    key={cmd.id}
-                    className={`command-btn ${battlePhase !== 'player' ? 'disabled' : ''} ${cmd.id === 'item' && potions <= 0 ? 'disabled' : ''}`}
-                    onClick={() => handleBattleCommand(cmd.id)}
-                    disabled={
-                      battlePhase !== 'player' ||
-                      (cmd.id === 'item' && potions <= 0)
-                    }
-                  >
-                    {cmd.id === 'item'
-                      ? `アイテム (${potions})`
-                      : cmd.label}
-                  </button>
-                ))
+                BATTLE_COMMANDS.map((cmd) => {
+                  const isBoss = enemy?.isBoss
+                  const isRunDisabled = cmd.id === 'run' && isBoss
+                  const isItemDisabled = cmd.id === 'item' && potions <= 0
+                  const isDisabled =
+                    battlePhase !== 'player' || isItemDisabled || isRunDisabled
+                  return (
+                    <button
+                      key={cmd.id}
+                      className={`command-btn ${isDisabled ? 'disabled' : ''}`}
+                      onClick={() => handleBattleCommand(cmd.id)}
+                      disabled={isDisabled}
+                    >
+                      {cmd.id === 'item'
+                        ? `アイテム (${potions})`
+                        : cmd.label}
+                    </button>
+                  )
+                })
               )}
             </div>
           ) : (

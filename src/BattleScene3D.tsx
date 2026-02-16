@@ -157,12 +157,119 @@ function Skeleton({ color }: { color: string }) {
   )
 }
 
+/* ── Boss: Dark Dragon ── */
+function BossDragon({ color }: { color: string }) {
+  const ref = useRef<THREE.Group>(null)
+  const leftWing = useRef<THREE.Mesh>(null)
+  const rightWing = useRef<THREE.Mesh>(null)
+  const tailRef = useRef<THREE.Mesh>(null)
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return
+    const t = clock.getElapsedTime()
+    ref.current.position.y = Math.sin(t * 1.5) * 0.08
+    ref.current.rotation.y = Math.sin(t * 0.8) * 0.1
+    const wingFlap = Math.sin(t * 3) * 0.3
+    if (leftWing.current) leftWing.current.rotation.z = 0.3 + wingFlap
+    if (rightWing.current) rightWing.current.rotation.z = -(0.3 + wingFlap)
+    if (tailRef.current) tailRef.current.rotation.y = Math.sin(t * 2) * 0.4
+  })
+
+  return (
+    <group ref={ref} position={[0, 0.2, -0.5]} scale={[1.5, 1.5, 1.5]}>
+      {/* body */}
+      <mesh position={[0, 0.7, 0]}>
+        <sphereGeometry args={[0.5, 12, 10]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+      {/* chest/belly */}
+      <mesh position={[0, 0.5, 0.2]}>
+        <sphereGeometry args={[0.35, 10, 8]} />
+        <meshStandardMaterial color="#dd6644" roughness={0.5} />
+      </mesh>
+      {/* neck */}
+      <mesh position={[0, 1.0, 0.15]} rotation={[0.4, 0, 0]}>
+        <cylinderGeometry args={[0.12, 0.18, 0.5, 8]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 1.3, 0.3]}>
+        <boxGeometry args={[0.35, 0.25, 0.4]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+      {/* snout */}
+      <mesh position={[0, 1.25, 0.55]}>
+        <boxGeometry args={[0.2, 0.15, 0.25]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+      {/* horns */}
+      <mesh position={[-0.12, 1.45, 0.2]} rotation={[0.3, 0, -0.3]}>
+        <coneGeometry args={[0.04, 0.2, 6]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+      <mesh position={[0.12, 1.45, 0.2]} rotation={[0.3, 0, 0.3]}>
+        <coneGeometry args={[0.04, 0.2, 6]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+      {/* eyes */}
+      <mesh position={[-0.1, 1.35, 0.48]}>
+        <sphereGeometry args={[0.04, 6, 6]} />
+        <meshStandardMaterial
+          color="#ffcc00"
+          emissive="#ff8800"
+          emissiveIntensity={2}
+        />
+      </mesh>
+      <mesh position={[0.1, 1.35, 0.48]}>
+        <sphereGeometry args={[0.04, 6, 6]} />
+        <meshStandardMaterial
+          color="#ffcc00"
+          emissive="#ff8800"
+          emissiveIntensity={2}
+        />
+      </mesh>
+      {/* left wing */}
+      <mesh ref={leftWing} position={[-0.5, 0.9, -0.1]} rotation={[0, 0, 0.3]}>
+        <boxGeometry args={[0.8, 0.03, 0.6]} />
+        <meshStandardMaterial
+          color="#881122"
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* right wing */}
+      <mesh ref={rightWing} position={[0.5, 0.9, -0.1]} rotation={[0, 0, -0.3]}>
+        <boxGeometry args={[0.8, 0.03, 0.6]} />
+        <meshStandardMaterial
+          color="#881122"
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* tail */}
+      <mesh ref={tailRef} position={[0, 0.4, -0.5]} rotation={[-0.3, 0, 0]}>
+        <coneGeometry args={[0.12, 0.8, 6]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+      {/* legs */}
+      <mesh position={[-0.2, 0.15, 0.1]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.4, 6]} />
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </mesh>
+      <mesh position={[0.2, 0.15, 0.1]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.4, 6]} />
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </mesh>
+      {/* fiery aura */}
+      <pointLight position={[0, 0.8, 0.3]} color="#ff4422" intensity={1.5} distance={4} />
+    </group>
+  )
+}
+
 /* ── Ground plane for battle ── */
 function BattleGround() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
       <planeGeometry args={[10, 10]} />
-      <meshStandardMaterial color="#1a1a2e" />
+      <meshStandardMaterial color="#2a2a40" />
     </mesh>
   )
 }
@@ -172,15 +279,16 @@ export default function BattleScene3D({ enemy }: { enemy: EnemyData }) {
   return (
     <Canvas
       camera={{ position: [0, 1.5, 3], fov: 50 }}
-      style={{ background: '#050510' }}
+      style={{ background: '#0a0a1a' }}
     >
-      <ambientLight intensity={0.15} color="#334" />
-      <directionalLight position={[2, 3, 2]} intensity={0.4} color="#8888cc" />
+      <ambientLight intensity={0.5} color="#667" />
+      <directionalLight position={[2, 3, 2]} intensity={1.0} color="#aaaadd" />
+      <directionalLight position={[-2, 2, -1]} intensity={0.4} color="#8888cc" />
       <pointLight
         position={[0, 2, 1]}
-        color="#ff6644"
-        intensity={0.6}
-        distance={6}
+        color="#ff8866"
+        intensity={1.2}
+        distance={8}
       />
 
       <BattleGround />
@@ -188,6 +296,7 @@ export default function BattleScene3D({ enemy }: { enemy: EnemyData }) {
       {enemy.type === 'slime' && <Slime color={enemy.color} />}
       {enemy.type === 'bat' && <Bat color={enemy.color} />}
       {enemy.type === 'skeleton' && <Skeleton color={enemy.color} />}
+      {enemy.type === 'boss' && <BossDragon color={enemy.color} />}
     </Canvas>
   )
 }
