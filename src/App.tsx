@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import './App.css'
 import CampScene3D from './CampScene3D'
 import DungeonScene3D, { type Direction } from './DungeonScene3D'
 import BattleScene3D from './BattleScene3D'
 import { type EnemyData, spawnEnemy, spawnBoss } from './enemies'
+import { GameDatabase } from './db/database'
 
 /* ── Floor maps ── */
 const NORMAL_FLOORS: string[][] = [
@@ -103,19 +104,11 @@ function loadSave(): SaveData | null {
   }
 }
 
-function writeSave(data: SaveData) {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data))
-  } catch {
-    /* quota exceeded – silently ignore */
-  }
-}
-
 function clearSave() {
   localStorage.removeItem(SAVE_KEY)
 }
 
-type GameMode = 'dungeon' | 'camp' | 'battle' | 'gameover'
+type GameMode = 'title' | 'name-input' | 'dungeon' | 'camp' | 'battle' | 'gameover'
 type BattlePhase = 'player' | 'enemy' | 'win' | 'lose'
 
 type Command = 'build' | 'search' | 'status'
@@ -230,37 +223,163 @@ function getDef(level: number): number {
   return BASE_DEF + (level - 1) * 2
 }
 
-const INITIAL_SAVE = loadSave()
+interface SaveSlotInfo {
+  slot: number
+  name: string
+  level: number
+  updatedAt: string
+}
 
 function App() {
-  const [floor, setFloor] = useState(INITIAL_SAVE?.floor ?? 0)
-  const [playerPos, setPlayerPos] = useState(
-    INITIAL_SAVE?.playerPos ?? { x: 1, y: 1 },
-  )
-  const [playerDir, setPlayerDir] = useState<Direction>(
-    INITIAL_SAVE?.playerDir ?? 'S',
-  )
-  const [level, setLevel] = useState(INITIAL_SAVE?.level ?? 1)
-  const [exp, setExp] = useState(INITIAL_SAVE?.exp ?? 0)
-  const [gold, setGold] = useState(INITIAL_SAVE?.gold ?? 0)
-  const [hp, setHp] = useState(INITIAL_SAVE?.hp ?? getMaxHp(1))
-  const [steps, setSteps] = useState(INITIAL_SAVE?.steps ?? 0)
-  const [potions, setPotions] = useState(INITIAL_SAVE?.potions ?? MAX_POTIONS)
-  const [mode, setMode] = useState<GameMode>('dungeon')
-  const [builtBases, setBuiltBases] = useState<Set<string>>(
-    new Set(INITIAL_SAVE?.builtBases ?? []),
-  )
+  /* ── DB & title screen state ── */
+  const dbRef = useRef<GameDatabase | null>(null)
+  const [dbReady, setDbReady] = useState(false)
+  const [saveSlots, setSaveSlots] = useState<SaveSlotInfo[]>([])
+  const [currentSlot, setCurrentSlot] = useState<number>(0)
+  const [playerName, setPlayerName] = useState('')
+  const [nameInput, setNameInput] = useState('')
+
+  /* ── Game state ── */
+  const [floor, setFloor] = useState(0)
+  const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 })
+  const [playerDir, setPlayerDir] = useState<Direction>('S')
+  const [level, setLevel] = useState(1)
+  const [exp, setExp] = useState(0)
+  const [gold, setGold] = useState(0)
+  const [hp, setHp] = useState(getMaxHp(1))
+  const [steps, setSteps] = useState(0)
+  const [potions, setPotions] = useState(MAX_POTIONS)
+  const [mode, setMode] = useState<GameMode>('title')
+  const [builtBases, setBuiltBases] = useState<Set<string>>(new Set())
   const [lastRestedBase, setLastRestedBase] = useState<{
     x: number
     y: number
     floor: number
-  } | null>(INITIAL_SAVE?.lastRestedBase ?? null)
-  const [bossDefeated, setBossDefeated] = useState(INITIAL_SAVE?.bossDefeated ?? false)
-  const [messages, setMessages] = useState<string[]>(
-    INITIAL_SAVE
-      ? ['セーブデータをロードした。冒険を続けよう！']
-      : ['ダンジョンに足を踏み入れた...', `体力: ${getMaxHp(1)}/${getMaxHp(1)}`],
-  )
+  } | null>(null)
+  const [bossDefeated, setBossDefeated] = useState(false)
+  const [messages, setMessages] = useState<string[]>([])
+
+  /* ── Initialize DB ── */
+  useEffect(() => {
+    let cancelled = false
+    GameDatabase.open().then((db) => {
+      if (cancelled) { db.close(); return }
+      dbRef.current = db
+      setSaveSlots(db.listSaves())
+
+      // Migrate old localStorage save if it exists
+      const oldSave = loadSave()
+      if (oldSave) {
+        const slot = 1
+        db.saveFull(slot, {
+          player: {
+            name: '冒険者',
+            level: oldSave.level,
+            exp: oldSave.exp,
+            hp: oldSave.hp,
+            gold: oldSave.gold,
+            steps: oldSave.steps,
+          },
+          items: [{ item_type: 'potion', quantity: oldSave.potions }],
+          progress: {
+            floor: oldSave.floor,
+            player_x: oldSave.playerPos.x,
+            player_y: oldSave.playerPos.y,
+            player_dir: oldSave.playerDir,
+            boss_defeated: oldSave.bossDefeated,
+            built_bases: oldSave.builtBases,
+            last_rested_base: oldSave.lastRestedBase,
+          },
+          settings: [],
+        })
+        clearSave()
+        setSaveSlots(db.listSaves())
+      }
+      setDbReady(true)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  /* ── Title screen: refresh save slots ── */
+  const refreshSlots = useCallback(() => {
+    if (dbRef.current) setSaveSlots(dbRef.current.listSaves())
+  }, [])
+
+  /* ── Start new game (go to name input) ── */
+  const handleNewGame = useCallback((slot: number) => {
+    setCurrentSlot(slot)
+    setNameInput('')
+    setMode('name-input')
+  }, [])
+
+  /* ── Confirm name and start game ── */
+  const handleNameConfirm = useCallback(() => {
+    const name = nameInput.trim() || '冒険者'
+    const db = dbRef.current
+    if (!db) return
+
+    db.createSave(currentSlot)
+    db.updatePlayer(currentSlot, { name })
+
+    setPlayerName(name)
+    setFloor(0)
+    setPlayerPos({ x: 1, y: 1 })
+    setPlayerDir('S')
+    setLevel(1)
+    setExp(0)
+    setGold(0)
+    setHp(getMaxHp(1))
+    setSteps(0)
+    setPotions(MAX_POTIONS)
+    setBuiltBases(new Set())
+    setLastRestedBase(null)
+    setBossDefeated(false)
+    setMessages([
+      `${name}はダンジョンに足を踏み入れた...`,
+      `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
+    ])
+    setMode('dungeon')
+  }, [nameInput, currentSlot])
+
+  /* ── Continue (load existing save) ── */
+  const handleContinue = useCallback((slot: number) => {
+    const db = dbRef.current
+    if (!db) return
+    const data = db.loadFull(slot)
+    if (!data) return
+
+    setCurrentSlot(slot)
+    setPlayerName(data.player.name)
+    setFloor(data.progress.floor)
+    setPlayerPos({ x: data.progress.player_x, y: data.progress.player_y })
+    setPlayerDir(data.progress.player_dir)
+    setLevel(data.player.level)
+    setExp(data.player.exp)
+    setGold(data.player.gold)
+    setHp(data.player.hp)
+    setSteps(data.player.steps)
+    const potionItem = data.items.find((i) => i.item_type === 'potion')
+    setPotions(potionItem?.quantity ?? 0)
+    setBuiltBases(new Set(data.progress.built_bases))
+    setLastRestedBase(data.progress.last_rested_base)
+    setBossDefeated(data.progress.boss_defeated)
+    setMessages([`${data.player.name}のセーブデータをロードした。冒険を続けよう！`])
+    setMode('dungeon')
+  }, [])
+
+  /* ── Delete save ── */
+  const handleDeleteSave = useCallback((slot: number) => {
+    const db = dbRef.current
+    if (!db) return
+    db.deleteSave(slot)
+    refreshSlots()
+  }, [refreshSlots])
+
+  /* ── Return to title ── */
+  const returnToTitle = useCallback(() => {
+    setMode('title')
+    refreshSlots()
+  }, [refreshSlots])
 
   /* Battle state */
   const [enemy, setEnemy] = useState<EnemyData | null>(null)
@@ -276,21 +395,24 @@ function App() {
     setMessages((prev) => [...prev.slice(-4), msg])
   }, [])
 
-  /* ── Auto-save to localStorage ── */
+  /* ── Auto-save to SQLite DB ── */
   useEffect(() => {
-    writeSave({
-      floor,
-      playerPos,
-      playerDir,
-      level,
-      exp,
-      gold,
-      hp,
-      steps,
-      potions,
-      builtBases: Array.from(builtBases),
-      lastRestedBase,
-      bossDefeated,
+    const db = dbRef.current
+    if (!db || !currentSlot || mode === 'title' || mode === 'name-input') return
+
+    db.saveFull(currentSlot, {
+      player: { name: playerName, level, exp, hp, gold, steps },
+      items: [{ item_type: 'potion', quantity: potions }],
+      progress: {
+        floor,
+        player_x: playerPos.x,
+        player_y: playerPos.y,
+        player_dir: playerDir,
+        boss_defeated: bossDefeated,
+        built_bases: Array.from(builtBases),
+        last_rested_base: lastRestedBase,
+      },
+      settings: [],
     })
   }, [
     floor,
@@ -305,6 +427,9 @@ function App() {
     builtBases,
     lastRestedBase,
     bossDefeated,
+    currentSlot,
+    playerName,
+    mode,
   ])
 
   const onBaseSpot = isBaseSpot(dungeonMap, playerPos.x, playerPos.y)
@@ -704,7 +829,7 @@ function App() {
         }
         case 'status':
           addMessage(
-            `Lv.${level} 冒険者 ── HP: ${hp}/${maxHp}  ATK: ${playerAtk}  DEF: ${playerDef}  EXP: ${exp}/${expForNextLevel(level)}  Gold: ${gold}  地下${floor + 1}階  歩数: ${steps}  ポーション: ${potions}`,
+            `Lv.${level} ${playerName} ── HP: ${hp}/${maxHp}  ATK: ${playerAtk}  DEF: ${playerDef}  EXP: ${exp}/${expForNextLevel(level)}  Gold: ${gold}  地下${floor + 1}階  歩数: ${steps}  ポーション: ${potions}`,
           )
           break
       }
@@ -724,6 +849,7 @@ function App() {
       floor,
       playerAtk,
       playerDef,
+      playerName,
       addMessage,
       descendStairs,
     ],
@@ -836,28 +962,10 @@ function App() {
     }
   }, [enemy, lastRestedBase, maxHp, gold])
 
-  /* ── Full reset (clear save) ── */
+  /* ── Full reset (return to title) ── */
   const fullReset = () => {
-    clearSave()
-    setFloor(0)
-    setPlayerPos({ x: 1, y: 1 })
-    setPlayerDir('S')
-    setLevel(1)
-    setExp(0)
-    setGold(0)
-    setHp(getMaxHp(1))
-    setSteps(0)
-    setPotions(MAX_POTIONS)
-    setMode('dungeon')
-    setBuiltBases(new Set())
-    setLastRestedBase(null)
-    setBossDefeated(false)
     setEnemy(null)
-    setMessages([
-      'セーブデータをリセットした。',
-      'ダンジョンに足を踏み入れた...',
-      `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
-    ])
+    returnToTitle()
   }
 
   const buildLabel = onStairs
@@ -877,6 +985,92 @@ function App() {
       : mode === 'battle'
         ? 'Battle'
         : `Dungeon B${floor + 1}F`
+
+  /* ── Title Screen ── */
+  if (mode === 'title') {
+    return (
+      <div className="game-container">
+        <div className="title-screen">
+          <h1 className="title-logo">Dungeon Crawler</h1>
+          <p className="title-sub">── 地下迷宮の冒険者 ──</p>
+          {!dbReady ? (
+            <p className="title-loading">Loading...</p>
+          ) : (
+            <div className="save-slots">
+              {[1, 2, 3].map((slot) => {
+                const save = saveSlots.find((s) => s.slot === slot)
+                return (
+                  <div key={slot} className="save-slot">
+                    <div className="save-slot-header">Slot {slot}</div>
+                    {save ? (
+                      <>
+                        <div className="save-slot-info">
+                          <span className="save-slot-name">{save.name}</span>
+                          <span className="save-slot-level">Lv.{save.level}</span>
+                        </div>
+                        <div className="save-slot-actions">
+                          <button
+                            className="title-btn"
+                            onClick={() => handleContinue(slot)}
+                          >
+                            つづきから
+                          </button>
+                          <button
+                            className="title-btn title-btn-danger"
+                            onClick={() => handleDeleteSave(slot)}
+                          >
+                            さくじょ
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="save-slot-actions">
+                        <button
+                          className="title-btn title-btn-new"
+                          onClick={() => handleNewGame(slot)}
+                        >
+                          はじめから
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Name Input Screen ── */
+  if (mode === 'name-input') {
+    return (
+      <div className="game-container">
+        <div className="name-input-screen">
+          <h2 className="name-input-title">冒険者の名前を入力してください</h2>
+          <input
+            className="name-input-field"
+            type="text"
+            maxLength={10}
+            placeholder="冒険者"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleNameConfirm() }}
+            autoFocus
+          />
+          <div className="name-input-actions">
+            <button className="title-btn" onClick={handleNameConfirm}>
+              冒険に出る
+            </button>
+            <button className="title-btn title-btn-back" onClick={returnToTitle}>
+              もどる
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="game-container">
@@ -946,7 +1140,7 @@ function App() {
           {/* Status bar */}
           <div className="hp-bar-container">
             <span className="hp-label">
-              Lv.{level}
+              Lv.{level} {playerName}
             </span>
             <div className="hp-bar">
               <div
@@ -1071,7 +1265,7 @@ function App() {
         <div className="panel-title">
           Message
           <button className="reset-btn" onClick={fullReset}>
-            Reset
+            Title
           </button>
         </div>
         <div className="message-log">
