@@ -119,17 +119,26 @@ type GameMode = 'dungeon' | 'camp' | 'battle' | 'gameover'
 type BattlePhase = 'player' | 'enemy' | 'win' | 'lose'
 
 type Command = 'build' | 'search' | 'status'
-type CampCommand = 'rest' | 'fish' | 'depart'
+type CampCommand = 'rest' | 'cook' | 'fish' | 'depart'
 type BattleCommand = 'attack' | 'defend' | 'item' | 'run'
 
 const DUNGEON_COMMANDS: { id: Command; label: string }[] = [
-  { id: 'build', label: 'きょてんをつくる' },
+  { id: 'build', label: 'キャンプする' },
   { id: 'search', label: 'しらべる' },
   { id: 'status', label: 'つよさ' },
 ]
 
+const COOK_COST = 15
+const RECIPES = [
+  { name: 'スライム汁', heal: 40 },
+  { name: '焼き魚定食', heal: 50 },
+  { name: '冒険者カレー', heal: 60 },
+  { name: 'きのこのスープ', heal: 45 },
+]
+
 const CAMP_COMMANDS: { id: CampCommand; label: string }[] = [
   { id: 'rest', label: 'やすむ' },
+  { id: 'cook', label: 'りょうりする' },
   { id: 'fish', label: 'つりをする' },
   { id: 'depart', label: 'しゅっぱつ' },
 ]
@@ -379,9 +388,10 @@ function App() {
       const msgs: string[] = [`ダンジョンを進んだ... (HP: ${newHp}/${maxHp})`]
       if (isBaseSpot(dungeonMap, nx, ny)) {
         if (builtBases.has(`${floor}:${nx},${ny}`)) {
-          msgs.push('拠点だ！ ここで休める。')
+          setHp(maxHp)
+          msgs.push(`キャンプ地だ！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
         } else {
-          msgs.push('拠点を作れそうな場所だ！')
+          msgs.push('キャンプできそうな場所だ！')
         }
       }
       if (isStairs(dungeonMap, nx, ny)) {
@@ -443,6 +453,14 @@ function App() {
 
       addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
 
+      if (
+        isBaseSpot(dungeonMap, nx, ny) &&
+        builtBases.has(`${floor}:${nx},${ny}`)
+      ) {
+        setHp(maxHp)
+        addMessage(`キャンプ地だ！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
+      }
+
       /* Boss encounter (immediate) */
       if (isBossSpot(dungeonMap, nx, ny) && !bossDefeated) {
         setTimeout(() => startBossBattle(), 300)
@@ -466,6 +484,8 @@ function App() {
     maxHp,
     mode,
     dungeonMap,
+    floor,
+    builtBases,
     bossDefeated,
     addMessage,
     startBattle,
@@ -649,14 +669,14 @@ function App() {
           if (onStairs) {
             descendStairs()
           } else if (!onBaseSpot) {
-            addMessage('ここには拠点を作れない。')
+            addMessage('ここではキャンプできない。')
           } else if (baseBuiltHere) {
             setMode('camp')
-            addMessage('拠点に入った。ゆっくり休もう。')
+            addMessage('キャンプ地に入った。ゆっくり休もう。')
           } else {
             setBuiltBases((prev) => new Set(prev).add(baseKey))
             setMode('camp')
-            addMessage('拠点を建設した！ キャンプを設営する...')
+            addMessage('キャンプを設営した！')
           }
           break
         case 'search': {
@@ -710,6 +730,20 @@ function App() {
             `ぐっすり眠った... HPが全回復した！ (HP: ${maxHp}/${maxHp})`,
           )
           break
+        case 'cook': {
+          if (gold < COOK_COST) {
+            addMessage(`材料費が足りない！ (${COOK_COST}G必要)`)
+            break
+          }
+          const recipe = RECIPES[Math.floor(Math.random() * RECIPES.length)]
+          const cookHeal = Math.min(recipe.heal, maxHp - hp)
+          setGold((g) => g - COOK_COST)
+          setHp((h) => Math.min(h + recipe.heal, maxHp))
+          addMessage(
+            `${recipe.name}を作った！ HPが${cookHeal}回復！ (-${COOK_COST}G)`,
+          )
+          break
+        }
         case 'fish':
           if (Math.random() < 0.6) {
             const healAmount = Math.min(15, maxHp - hp)
@@ -723,11 +757,11 @@ function App() {
           break
         case 'depart':
           setMode('dungeon')
-          addMessage('拠点を出発した。ダンジョンを進もう。')
+          addMessage('キャンプ地を出発した。ダンジョンを進もう。')
           break
       }
     },
-    [maxHp, hp, playerPos, floor, addMessage],
+    [maxHp, hp, gold, playerPos, floor, addMessage],
   )
 
   /* ── Game over / restart ── */
@@ -744,7 +778,7 @@ function App() {
       setMode('dungeon')
       setEnemy(null)
       setMessages([
-        '拠点で目を覚ました...',
+        'キャンプ地で目を覚ました...',
         `ゴールドを${lostGold}失ったようだ。`,
         `体力: ${respawnHp}/${maxHp}`,
       ])
@@ -798,10 +832,10 @@ function App() {
   const buildLabel = onStairs
     ? 'かいだんを降りる'
     : !onBaseSpot
-      ? 'きょてんをつくる'
+      ? 'キャンプする'
       : baseBuiltHere
-        ? 'きょてんに入る'
-        : 'きょてんをつくる'
+        ? 'キャンプに入る'
+        : 'キャンプする'
 
   const buildDisabled = !onBaseSpot && !onStairs
 
@@ -903,20 +937,26 @@ function App() {
             <div className="command-list">
               <p className="gameover-text">GAME OVER</p>
               <button className="command-btn selected" onClick={restart}>
-                {lastRestedBase ? 'きょてんに戻る' : 'もういちど'}
+                {lastRestedBase ? 'キャンプに戻る' : 'もういちど'}
               </button>
             </div>
           ) : mode === 'camp' ? (
             <div className="command-list">
-              {CAMP_COMMANDS.map((cmd) => (
-                <button
-                  key={cmd.id}
-                  className="command-btn"
-                  onClick={() => handleCampCommand(cmd.id)}
-                >
-                  {cmd.label}
-                </button>
-              ))}
+              {CAMP_COMMANDS.map((cmd) => {
+                const isCookDisabled = cmd.id === 'cook' && gold < COOK_COST
+                return (
+                  <button
+                    key={cmd.id}
+                    className={`command-btn ${isCookDisabled ? 'disabled' : ''}`}
+                    onClick={() => handleCampCommand(cmd.id)}
+                    disabled={isCookDisabled}
+                  >
+                    {cmd.id === 'cook'
+                      ? `りょうりする (${COOK_COST}G)`
+                      : cmd.label}
+                  </button>
+                )
+              })}
             </div>
           ) : mode === 'battle' ? (
             <div className="command-list">

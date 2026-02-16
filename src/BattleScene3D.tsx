@@ -17,7 +17,7 @@ function Slime({ color }: { color: string }) {
   })
 
   return (
-    <group ref={ref} position={[0, 0, 0]}>
+    <group ref={ref} position={[0, -0.3, 0]}>
       <mesh position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.5, 16, 12]} />
         <meshStandardMaterial color={color} roughness={0.3} />
@@ -47,12 +47,12 @@ function Bat({ color }: { color: string }) {
     if (leftWing.current) leftWing.current.rotation.z = flapAngle
     if (rightWing.current) rightWing.current.rotation.z = -flapAngle
     if (bodyRef.current) {
-      bodyRef.current.position.y = 1.2 + Math.sin(t * 3) * 0.15
+      bodyRef.current.position.y = 0.8 + Math.sin(t * 3) * 0.15
     }
   })
 
   return (
-    <group ref={bodyRef} position={[0, 1.2, 0]}>
+    <group ref={bodyRef} position={[0, 0.8, 0]}>
       {/* body */}
       <mesh>
         <sphereGeometry args={[0.25, 10, 10]} />
@@ -100,7 +100,7 @@ function Skeleton({ color }: { color: string }) {
   })
 
   return (
-    <group ref={ref} position={[0, 0, 0]}>
+    <group ref={ref} position={[0, -0.3, 0]}>
       {/* spine */}
       <mesh position={[0, 0.6, 0]}>
         <cylinderGeometry args={[0.06, 0.08, 0.8, 6]} />
@@ -176,7 +176,7 @@ function BossDragon({ color }: { color: string }) {
   })
 
   return (
-    <group ref={ref} position={[0, -0.2, -0.5]} scale={[1.5, 1.5, 1.5]}>
+    <group ref={ref} position={[0, -0.6, -0.5]} scale={[1.5, 1.5, 1.5]}>
       {/* body */}
       <mesh position={[0, 0.7, 0]}>
         <sphereGeometry args={[0.5, 12, 10]} />
