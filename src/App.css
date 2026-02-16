@@ -38,6 +38,28 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reset-btn {
+  background: transparent;
+  border: 1px solid #0a0a1e;
+  color: #0a0a1e;
+  font-size: 0.6rem;
+  font-family: 'Courier New', monospace;
+  padding: 0px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.reset-btn:hover {
+  background: #0a0a1e;
+  color: #8888cc;
 }
 
 /* ===== Dungeon (top-left) ===== */

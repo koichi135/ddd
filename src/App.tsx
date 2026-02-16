@@ -76,6 +76,44 @@ const MAX_POTIONS = 3
 const POTION_HEAL = 30
 const EXP_TABLE = [0, 10, 25, 50, 80, 120, 170, 230, 300, 380]
 const TREASURE_RATE = 0.35
+const SAVE_KEY = 'dungeon-crawler-save'
+
+interface SaveData {
+  floor: number
+  playerPos: { x: number; y: number }
+  playerDir: Direction
+  level: number
+  exp: number
+  gold: number
+  hp: number
+  steps: number
+  potions: number
+  builtBases: string[]
+  lastRestedBase: { x: number; y: number; floor: number } | null
+  bossDefeated: boolean
+}
+
+function loadSave(): SaveData | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as SaveData
+  } catch {
+    return null
+  }
+}
+
+function writeSave(data: SaveData) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data))
+  } catch {
+    /* quota exceeded – silently ignore */
+  }
+}
+
+function clearSave() {
+  localStorage.removeItem(SAVE_KEY)
+}
 
 type GameMode = 'dungeon' | 'camp' | 'battle' | 'gameover'
 type BattlePhase = 'player' | 'enemy' | 'win' | 'lose'
@@ -183,28 +221,37 @@ function getDef(level: number): number {
   return BASE_DEF + (level - 1) * 2
 }
 
+const INITIAL_SAVE = loadSave()
+
 function App() {
-  const [floor, setFloor] = useState(0)
-  const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 })
-  const [playerDir, setPlayerDir] = useState<Direction>('S')
-  const [level, setLevel] = useState(1)
-  const [exp, setExp] = useState(0)
-  const [gold, setGold] = useState(0)
-  const [hp, setHp] = useState(getMaxHp(1))
-  const [steps, setSteps] = useState(0)
-  const [potions, setPotions] = useState(MAX_POTIONS)
+  const [floor, setFloor] = useState(INITIAL_SAVE?.floor ?? 0)
+  const [playerPos, setPlayerPos] = useState(
+    INITIAL_SAVE?.playerPos ?? { x: 1, y: 1 },
+  )
+  const [playerDir, setPlayerDir] = useState<Direction>(
+    INITIAL_SAVE?.playerDir ?? 'S',
+  )
+  const [level, setLevel] = useState(INITIAL_SAVE?.level ?? 1)
+  const [exp, setExp] = useState(INITIAL_SAVE?.exp ?? 0)
+  const [gold, setGold] = useState(INITIAL_SAVE?.gold ?? 0)
+  const [hp, setHp] = useState(INITIAL_SAVE?.hp ?? getMaxHp(1))
+  const [steps, setSteps] = useState(INITIAL_SAVE?.steps ?? 0)
+  const [potions, setPotions] = useState(INITIAL_SAVE?.potions ?? MAX_POTIONS)
   const [mode, setMode] = useState<GameMode>('dungeon')
-  const [builtBases, setBuiltBases] = useState<Set<string>>(new Set())
+  const [builtBases, setBuiltBases] = useState<Set<string>>(
+    new Set(INITIAL_SAVE?.builtBases ?? []),
+  )
   const [lastRestedBase, setLastRestedBase] = useState<{
     x: number
     y: number
     floor: number
-  } | null>(null)
-  const [bossDefeated, setBossDefeated] = useState(false)
-  const [messages, setMessages] = useState<string[]>([
-    'ダンジョンに足を踏み入れた...',
-    `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
-  ])
+  } | null>(INITIAL_SAVE?.lastRestedBase ?? null)
+  const [bossDefeated, setBossDefeated] = useState(INITIAL_SAVE?.bossDefeated ?? false)
+  const [messages, setMessages] = useState<string[]>(
+    INITIAL_SAVE
+      ? ['セーブデータをロードした。冒険を続けよう！']
+      : ['ダンジョンに足を踏み入れた...', `体力: ${getMaxHp(1)}/${getMaxHp(1)}`],
+  )
 
   /* Battle state */
   const [enemy, setEnemy] = useState<EnemyData | null>(null)
@@ -219,6 +266,37 @@ function App() {
   const addMessage = useCallback((msg: string) => {
     setMessages((prev) => [...prev.slice(-4), msg])
   }, [])
+
+  /* ── Auto-save to localStorage ── */
+  useEffect(() => {
+    writeSave({
+      floor,
+      playerPos,
+      playerDir,
+      level,
+      exp,
+      gold,
+      hp,
+      steps,
+      potions,
+      builtBases: Array.from(builtBases),
+      lastRestedBase,
+      bossDefeated,
+    })
+  }, [
+    floor,
+    playerPos,
+    playerDir,
+    level,
+    exp,
+    gold,
+    hp,
+    steps,
+    potions,
+    builtBases,
+    lastRestedBase,
+    bossDefeated,
+  ])
 
   const onBaseSpot = isBaseSpot(dungeonMap, playerPos.x, playerPos.y)
   const onStairs = isStairs(dungeonMap, playerPos.x, playerPos.y)
@@ -693,6 +771,30 @@ function App() {
     }
   }, [lastRestedBase, maxHp, gold])
 
+  /* ── Full reset (clear save) ── */
+  const fullReset = () => {
+    clearSave()
+    setFloor(0)
+    setPlayerPos({ x: 1, y: 1 })
+    setPlayerDir('S')
+    setLevel(1)
+    setExp(0)
+    setGold(0)
+    setHp(getMaxHp(1))
+    setSteps(0)
+    setPotions(MAX_POTIONS)
+    setMode('dungeon')
+    setBuiltBases(new Set())
+    setLastRestedBase(null)
+    setBossDefeated(false)
+    setEnemy(null)
+    setMessages([
+      'セーブデータをリセットした。',
+      'ダンジョンに足を踏み入れた...',
+      `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
+    ])
+  }
+
   const buildLabel = onStairs
     ? 'かいだんを降りる'
     : !onBaseSpot
@@ -895,7 +997,12 @@ function App() {
 
       {/* ===== Bottom: Message ===== */}
       <div className="panel message-panel">
-        <div className="panel-title">Message</div>
+        <div className="panel-title">
+          Message
+          <button className="reset-btn" onClick={fullReset}>
+            Reset
+          </button>
+        </div>
         <div className="message-log">
           {messages.map((msg, i) => (
             <p key={i} className={i === messages.length - 1 ? 'latest' : ''}>

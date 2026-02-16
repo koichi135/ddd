@@ -176,7 +176,7 @@ function BossDragon({ color }: { color: string }) {
   })
 
   return (
-    <group ref={ref} position={[0, 0.2, -0.5]} scale={[1.5, 1.5, 1.5]}>
+    <group ref={ref} position={[0, -0.2, -0.5]} scale={[1.5, 1.5, 1.5]}>
       {/* body */}
       <mesh position={[0, 0.7, 0]}>
         <sphereGeometry args={[0.5, 12, 10]} />
@@ -278,7 +278,7 @@ function BattleGround() {
 export default function BattleScene3D({ enemy }: { enemy: EnemyData }) {
   return (
     <Canvas
-      camera={{ position: [0, 1.5, 3], fov: 50 }}
+      camera={{ position: [0, 1, 4], fov: 55 }}
       style={{ background: '#0a0a1a' }}
     >
       <ambientLight intensity={0.5} color="#667" />
