@@ -55,13 +55,13 @@ const NORMAL_FLOORS: string[][] = [
 
 const BOSS_FLOOR: string[] = [
   '##########',
-  '#........#',
+  '#.......K#',
+  '##.#######',
+  '##.......#',
+  '######.###',
+  '#......#.#',
   '#.######.#',
-  '#.#....#.#',
-  '#.#.K..#.#',
-  '#.#....#.#',
-  '#.#..#...#',
-  '#.B......#',
+  '#........#',
   '##########',
 ]
 
@@ -385,14 +385,20 @@ function App() {
         return
       }
 
+      /* Built camp: auto-enter, full HP restore */
+      if (
+        isBaseSpot(dungeonMap, nx, ny) &&
+        builtBases.has(`${floor}:${nx},${ny}`)
+      ) {
+        setHp(maxHp)
+        addMessage(`キャンプ地に到着！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
+        setMode('camp')
+        return
+      }
+
       const msgs: string[] = [`ダンジョンを進んだ... (HP: ${newHp}/${maxHp})`]
       if (isBaseSpot(dungeonMap, nx, ny)) {
-        if (builtBases.has(`${floor}:${nx},${ny}`)) {
-          setHp(maxHp)
-          msgs.push(`キャンプ地だ！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
-        } else {
-          msgs.push('キャンプできそうな場所だ！')
-        }
+        msgs.push('キャンプできそうな場所だ！')
       }
       if (isStairs(dungeonMap, nx, ny)) {
         msgs.push('階段がある！ 次の階へ降りられる。')
@@ -451,15 +457,18 @@ function App() {
         return
       }
 
-      addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
-
+      /* Built camp: auto-enter, full HP restore */
       if (
         isBaseSpot(dungeonMap, nx, ny) &&
         builtBases.has(`${floor}:${nx},${ny}`)
       ) {
         setHp(maxHp)
-        addMessage(`キャンプ地だ！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
+        addMessage(`キャンプ地に到着！ HPが全回復した！ (HP: ${maxHp}/${maxHp})`)
+        setMode('camp')
+        return
       }
+
+      addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
 
       /* Boss encounter (immediate) */
       if (isBossSpot(dungeonMap, nx, ny) && !bossDefeated) {
@@ -766,7 +775,29 @@ function App() {
 
   /* ── Game over / restart ── */
   const restart = useCallback(() => {
-    if (lastRestedBase) {
+    const killedByBoss = enemy?.isBoss
+    if (killedByBoss) {
+      /* Boss kill = full reset */
+      setFloor(0)
+      setPlayerPos({ x: 1, y: 1 })
+      setPlayerDir('S')
+      setLevel(1)
+      setExp(0)
+      setGold(0)
+      setHp(getMaxHp(1))
+      setSteps(0)
+      setPotions(MAX_POTIONS)
+      setMode('dungeon')
+      setBuiltBases(new Set())
+      setLastRestedBase(null)
+      setBossDefeated(false)
+      setEnemy(null)
+      setMessages([
+        'ボスの力に打ちのめされた...',
+        '全てを失い、最初からやり直す。',
+        `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
+      ])
+    } else if (lastRestedBase) {
       /* Return to last rested base */
       setFloor(lastRestedBase.floor)
       setPlayerPos({ x: lastRestedBase.x, y: lastRestedBase.y })
@@ -803,7 +834,7 @@ function App() {
         `体力: ${getMaxHp(1)}/${getMaxHp(1)}`,
       ])
     }
-  }, [lastRestedBase, maxHp, gold])
+  }, [enemy, lastRestedBase, maxHp, gold])
 
   /* ── Full reset (clear save) ── */
   const fullReset = () => {
@@ -937,7 +968,7 @@ function App() {
             <div className="command-list">
               <p className="gameover-text">GAME OVER</p>
               <button className="command-btn selected" onClick={restart}>
-                {lastRestedBase ? 'キャンプに戻る' : 'もういちど'}
+                {enemy?.isBoss || !lastRestedBase ? 'もういちど' : 'キャンプに戻る'}
               </button>
             </div>
           ) : mode === 'camp' ? (
