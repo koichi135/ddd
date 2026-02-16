@@ -128,19 +128,19 @@ function DungeonGeometry({
       {/* Walls */}
       <instancedMesh ref={wallMeshRef} args={[undefined, undefined, walls.length]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#4a4a6a" roughness={0.85} />
+        <meshStandardMaterial color="#6a6a8a" roughness={0.8} />
       </instancedMesh>
 
       {/* Floor */}
       <instancedMesh ref={floorMeshRef} args={[undefined, undefined, floors.length]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#252540" roughness={0.95} />
+        <meshStandardMaterial color="#3a3a58" roughness={0.9} />
       </instancedMesh>
 
       {/* Ceiling */}
       <instancedMesh ref={ceilMeshRef} args={[undefined, undefined, floors.length]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#1a1a33" roughness={0.95} />
+        <meshStandardMaterial color="#2e2e4a" roughness={0.9} />
       </instancedMesh>
 
       {/* Base spot markers */}
@@ -266,16 +266,16 @@ function Torches({ dungeonMap }: { dungeonMap: string[] }) {
         <group key={`torch-${x}-${y}`}>
           <pointLight
             position={[x, 0.8, y]}
-            color="#ff9955"
-            intensity={1.2}
-            distance={4}
+            color="#ffaa66"
+            intensity={2}
+            distance={6}
           />
           <mesh position={[x, 0.85, y]}>
             <sphereGeometry args={[0.04, 6, 6]} />
             <meshStandardMaterial
-              color="#ff6600"
-              emissive="#ff4400"
-              emissiveIntensity={2}
+              color="#ff8833"
+              emissive="#ff6600"
+              emissiveIntensity={3}
             />
           </mesh>
         </group>
@@ -295,9 +295,9 @@ export default function DungeonScene3D({
   return (
     <Canvas
       camera={{ fov: 75, near: 0.1, far: 20, position: [1, 0.5, 1] }}
-      style={{ background: '#050510' }}
+      style={{ background: '#0a0a20' }}
     >
-      <ambientLight intensity={0.2} color="#556" />
+      <ambientLight intensity={0.5} color="#889" />
 
       <CameraController playerPos={playerPos} playerDir={playerDir} />
       <DungeonGeometry dungeonMap={dungeonMap} builtBases={builtBases} floor={floor} />
