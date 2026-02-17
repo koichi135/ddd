@@ -1,0 +1,129 @@
+/* ===== Item Menu ===== */
+.item-menu {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.item-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #333;
+  color: #8888cc;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.item-menu-close {
+  background: transparent;
+  border: 1px solid #8888cc;
+  color: #8888cc;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.item-menu-close:hover {
+  background: #1a1a3e;
+  color: #fff;
+}
+
+.item-menu-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.item-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.item-menu-row:hover {
+  background: #1a1a3e;
+}
+
+.item-menu-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  background: #111133;
+  border: 1px solid #333;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.item-menu-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-menu-name {
+  color: #ccc;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.item-menu-desc {
+  color: #666;
+  font-size: 0.7rem;
+}
+
+.item-menu-qty {
+  color: #8888cc;
+  font-size: 0.8rem;
+  min-width: 24px;
+  text-align: right;
+}
+
+.item-menu-use {
+  background: transparent;
+  border: 1px solid #44cc88;
+  color: #44cc88;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.item-menu-use:hover {
+  background: #0a2a1a;
+  color: #66ffaa;
+}
+
+.item-menu-empty {
+  color: #555;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+  .item-menu-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .item-menu-name {
+    font-size: 0.8rem;
+  }
+
+  .item-menu-row {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+}

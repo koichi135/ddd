@@ -5,6 +5,7 @@ import DungeonScene3D, { type Direction } from './DungeonScene3D'
 import BattleScene3D from './BattleScene3D'
 import { type EnemyData, spawnEnemy, spawnBoss } from './enemies'
 import { GameDatabase } from './db/database'
+import ItemMenu from './ItemMenu'
 
 /* ── Floor maps ── */
 const NORMAL_FLOORS: string[][] = [
@@ -111,13 +112,14 @@ function clearSave() {
 type GameMode = 'title' | 'name-input' | 'dungeon' | 'camp' | 'battle' | 'gameover'
 type BattlePhase = 'player' | 'enemy' | 'win' | 'lose'
 
-type Command = 'build' | 'search' | 'status'
+type Command = 'build' | 'search' | 'status' | 'item'
 type CampCommand = 'rest' | 'cook' | 'fish' | 'depart'
 type BattleCommand = 'attack' | 'defend' | 'item' | 'run'
 
 const DUNGEON_COMMANDS: { id: Command; label: string }[] = [
   { id: 'build', label: 'キャンプする' },
   { id: 'search', label: 'しらべる' },
+  { id: 'item', label: 'もちもの' },
   { id: 'status', label: 'つよさ' },
 ]
 
@@ -390,6 +392,9 @@ function App() {
     refreshSlots()
   }, [refreshSlots])
 
+  /* Item menu state */
+  const [showItemMenu, setShowItemMenu] = useState(false)
+
   /* Battle state */
   const [enemy, setEnemy] = useState<EnemyData | null>(null)
   const [battlePhase, setBattlePhase] = useState<BattlePhase>('player')
@@ -481,6 +486,7 @@ function App() {
     setEnemy(e)
     setBattlePhase('player')
     setDefending(false)
+    setShowItemMenu(false)
     setMode('battle')
     addMessage(`${e.name}が現れた！`)
   }, [addMessage, floor])
@@ -491,6 +497,7 @@ function App() {
     setEnemy(boss)
     setBattlePhase('player')
     setDefending(false)
+    setShowItemMenu(false)
     setMode('battle')
     addMessage('地面が揺れている...')
     addMessage(`${boss.name}が立ちはだかった！`)
@@ -840,6 +847,9 @@ function App() {
           }
           break
         }
+        case 'item':
+          setShowItemMenu(true)
+          break
         case 'status':
           addMessage(
             `Lv.${level} ${playerName} ── HP: ${hp}/${maxHp}  ATK: ${playerAtk}  DEF: ${playerDef}  EXP: ${exp}/${expForNextLevel(level)}  Gold: ${gold}  地下${floor + 1}階  歩数: ${steps}  ポーション: ${potions}`,
@@ -867,6 +877,20 @@ function App() {
       descendStairs,
     ],
   )
+
+  const handleUsePotion = useCallback(() => {
+    if (potions <= 0) {
+      addMessage('ポーションがない！')
+      return
+    }
+    const healAmount = Math.min(POTION_HEAL, maxHp - hp)
+    const newHp = hp + healAmount
+    setHp(newHp)
+    setPotions((p) => p - 1)
+    addMessage(
+      `ポーションを使った！ HPが${healAmount}回復！ (HP: ${newHp}/${maxHp})`,
+    )
+  }, [potions, hp, maxHp, addMessage])
 
   const handleCampCommand = useCallback(
     (cmd: CampCommand) => {
@@ -1234,6 +1258,17 @@ function App() {
                 })
               )}
             </div>
+          ) : showItemMenu ? (
+            <ItemMenu
+              potions={potions}
+              level={level}
+              bossDefeated={bossDefeated}
+              onUsePotion={() => {
+                handleUsePotion()
+                setShowItemMenu(false)
+              }}
+              onClose={() => setShowItemMenu(false)}
+            />
           ) : (
             <div className="command-list">
               {DUNGEON_COMMANDS.map((cmd) => (
@@ -1250,7 +1285,7 @@ function App() {
           )}
 
           {/* Direction pad — Wizardry style */}
-          {mode === 'dungeon' && (
+          {mode === 'dungeon' && !showItemMenu && (
             <div className="direction-pad">
               <div className="dir-row">
                 <button className="dir-btn" onClick={moveForward}>
