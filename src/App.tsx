@@ -262,41 +262,45 @@ function App() {
   /* ── Initialize DB ── */
   useEffect(() => {
     let cancelled = false
-    GameDatabase.open().then((db) => {
-      if (cancelled) { db.close(); return }
-      dbRef.current = db
-      setSaveSlots(db.listSaves())
-
-      // Migrate old localStorage save if it exists
-      const oldSave = loadSave()
-      if (oldSave) {
-        const slot = 1
-        db.saveFull(slot, {
-          player: {
-            name: '冒険者',
-            level: oldSave.level,
-            exp: oldSave.exp,
-            hp: oldSave.hp,
-            gold: oldSave.gold,
-            steps: oldSave.steps,
-          },
-          items: [{ item_type: 'potion', quantity: oldSave.potions }],
-          progress: {
-            floor: oldSave.floor,
-            player_x: oldSave.playerPos.x,
-            player_y: oldSave.playerPos.y,
-            player_dir: oldSave.playerDir,
-            boss_defeated: oldSave.bossDefeated,
-            built_bases: oldSave.builtBases,
-            last_rested_base: oldSave.lastRestedBase,
-          },
-          settings: [],
-        })
-        clearSave()
+    GameDatabase.open()
+      .then((db) => {
+        if (cancelled) { db.close(); return }
+        dbRef.current = db
         setSaveSlots(db.listSaves())
-      }
-      setDbReady(true)
-    })
+
+        // Migrate old localStorage save if it exists
+        const oldSave = loadSave()
+        if (oldSave) {
+          const slot = 1
+          db.saveFull(slot, {
+            player: {
+              name: '冒険者',
+              level: oldSave.level,
+              exp: oldSave.exp,
+              hp: oldSave.hp,
+              gold: oldSave.gold,
+              steps: oldSave.steps,
+            },
+            items: [{ item_type: 'potion', quantity: oldSave.potions }],
+            progress: {
+              floor: oldSave.floor,
+              player_x: oldSave.playerPos.x,
+              player_y: oldSave.playerPos.y,
+              player_dir: oldSave.playerDir,
+              boss_defeated: oldSave.bossDefeated,
+              built_bases: oldSave.builtBases,
+              last_rested_base: oldSave.lastRestedBase,
+            },
+            settings: [],
+          })
+          clearSave()
+          setSaveSlots(db.listSaves())
+        }
+        setDbReady(true)
+      })
+      .catch((err) => {
+        console.error('Failed to initialize database:', err)
+      })
     return () => { cancelled = true }
   }, [])
 
@@ -318,8 +322,13 @@ function App() {
     const db = dbRef.current
     if (!db) return
 
-    db.createSave(currentSlot)
-    db.updatePlayer(currentSlot, { name })
+    try {
+      db.createSave(currentSlot)
+      db.updatePlayer(currentSlot, { name })
+    } catch (e) {
+      console.error('Failed to create save:', e)
+      // Continue anyway so the game is playable
+    }
 
     setPlayerName(name)
     setFloor(0)
@@ -400,20 +409,24 @@ function App() {
     const db = dbRef.current
     if (!db || !currentSlot || mode === 'title' || mode === 'name-input') return
 
-    db.saveFull(currentSlot, {
-      player: { name: playerName, level, exp, hp, gold, steps },
-      items: [{ item_type: 'potion', quantity: potions }],
-      progress: {
-        floor,
-        player_x: playerPos.x,
-        player_y: playerPos.y,
-        player_dir: playerDir,
-        boss_defeated: bossDefeated,
-        built_bases: Array.from(builtBases),
-        last_rested_base: lastRestedBase,
-      },
-      settings: [],
-    })
+    try {
+      db.saveFull(currentSlot, {
+        player: { name: playerName, level, exp, hp, gold, steps },
+        items: [{ item_type: 'potion', quantity: potions }],
+        progress: {
+          floor,
+          player_x: playerPos.x,
+          player_y: playerPos.y,
+          player_dir: playerDir,
+          boss_defeated: bossDefeated,
+          built_bases: Array.from(builtBases),
+          last_rested_base: lastRestedBase,
+        },
+        settings: [],
+      })
+    } catch (e) {
+      console.error('Auto-save failed:', e)
+    }
   }, [
     floor,
     playerPos,

@@ -143,8 +143,14 @@ export class GameDatabase {
   /** Write the current DB bytes to localStorage */
   persist(): void {
     const data = this.db.export()
-    const binary = String.fromCharCode(...data)
-    localStorage.setItem(STORAGE_KEY, btoa(binary))
+    // Use chunked conversion to avoid "Maximum call stack size exceeded"
+    // when spreading large Uint8Arrays as function arguments
+    const CHUNK = 8192
+    const chunks: string[] = []
+    for (let i = 0; i < data.length; i += CHUNK) {
+      chunks.push(String.fromCharCode(...data.subarray(i, i + CHUNK)))
+    }
+    localStorage.setItem(STORAGE_KEY, btoa(chunks.join('')))
   }
 
   /** Close the database */
