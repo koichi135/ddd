@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- 1px = 1 dot, 16x16 pixel art: Health Potion -->
+  <style>
+    rect { width: 1px; height: 1px; }
+  </style>
+
+  <!-- Cork / Stopper -->
+  <rect x="6" y="1" width="4" height="1" fill="#8B5E3C"/>
+  <rect x="6" y="2" width="4" height="1" fill="#A0724B"/>
+
+  <!-- Bottle Neck -->
+  <rect x="7" y="3" width="2" height="1" fill="#C8E6FF"/>
+  <rect x="7" y="4" width="2" height="1" fill="#B0D4F1"/>
+
+  <!-- Bottle Body - Glass outline -->
+  <rect x="5" y="5" width="1" height="1" fill="#A0C4E8"/>
+  <rect x="10" y="5" width="1" height="1" fill="#A0C4E8"/>
+  <rect x="4" y="6" width="1" height="6" fill="#A0C4E8"/>
+  <rect x="11" y="6" width="1" height="6" fill="#A0C4E8"/>
+  <rect x="5" y="12" width="6" height="1" fill="#A0C4E8"/>
+
+  <!-- Bottle Body - Glass top (empty) -->
+  <rect x="6" y="5" width="4" height="1" fill="#D6EEFF"/>
+  <rect x="5" y="6" width="6" height="1" fill="#D6EEFF"/>
+
+  <!-- Red Liquid -->
+  <rect x="5" y="7" width="6" height="1" fill="#FF4060"/>
+  <rect x="5" y="8" width="6" height="1" fill="#E8304E"/>
+  <rect x="5" y="9" width="6" height="1" fill="#D42040"/>
+  <rect x="5" y="10" width="6" height="1" fill="#C01030"/>
+  <rect x="5" y="11" width="6" height="1" fill="#B00020"/>
+
+  <!-- Liquid Highlight -->
+  <rect x="6" y="8" width="1" height="1" fill="#FF6080"/>
+  <rect x="6" y="9" width="1" height="1" fill="#FF5070"/>
+</svg>
