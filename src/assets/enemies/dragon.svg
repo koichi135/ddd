@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!-- 32x32 pixel art: Dark Dragon (Boss) — larger for more detail -->
+  <style>rect { width: 1px; height: 1px; }</style>
+
+  <!-- Left horn -->
+  <rect x="8" y="2" width="1" height="1" fill="#222222"/>
+  <rect x="8" y="3" width="1" height="1" fill="#333333"/>
+  <rect x="9" y="3" width="1" height="1" fill="#222222"/>
+  <rect x="9" y="4" width="1" height="1" fill="#333333"/>
+
+  <!-- Right horn -->
+  <rect x="22" y="2" width="1" height="1" fill="#222222"/>
+  <rect x="22" y="3" width="1" height="1" fill="#333333"/>
+  <rect x="21" y="3" width="1" height="1" fill="#222222"/>
+  <rect x="21" y="4" width="1" height="1" fill="#333333"/>
+
+  <!-- Head -->
+  <rect x="10" y="4" width="11" height="1" fill="#aa1a33"/>
+  <rect x="9" y="5" width="13" height="1" fill="#cc2244"/>
+  <rect x="9" y="6" width="13" height="1" fill="#cc2244"/>
+  <rect x="10" y="7" width="11" height="1" fill="#bb1d3d"/>
+
+  <!-- Eyes -->
+  <rect x="11" y="5" width="2" height="2" fill="#ffcc00"/>
+  <rect x="12" y="5" width="1" height="2" fill="#ff8800"/>
+  <rect x="18" y="5" width="2" height="2" fill="#ffcc00"/>
+  <rect x="19" y="5" width="1" height="2" fill="#ff8800"/>
+
+  <!-- Snout -->
+  <rect x="13" y="7" width="5" height="1" fill="#aa1a33"/>
+  <rect x="14" y="8" width="3" height="1" fill="#991133"/>
+  <!-- Nostrils -->
+  <rect x="14" y="7" width="1" height="1" fill="#881122"/>
+  <rect x="16" y="7" width="1" height="1" fill="#881122"/>
+
+  <!-- Neck -->
+  <rect x="12" y="8" width="7" height="1" fill="#cc2244"/>
+  <rect x="13" y="9" width="5" height="1" fill="#bb1d3d"/>
+
+  <!-- Left wing -->
+  <rect x="2" y="10" width="1" height="1" fill="#881122"/>
+  <rect x="3" y="9" width="1" height="2" fill="#991133"/>
+  <rect x="4" y="8" width="1" height="4" fill="#aa1a33"/>
+  <rect x="5" y="8" width="1" height="5" fill="#bb1d3d"/>
+  <rect x="6" y="9" width="1" height="5" fill="#cc2244"/>
+  <rect x="7" y="10" width="1" height="5" fill="#cc2244"/>
+  <rect x="8" y="11" width="1" height="4" fill="#bb1d3d"/>
+  <rect x="9" y="11" width="1" height="3" fill="#aa1a33"/>
+  <!-- Wing membrane -->
+  <rect x="3" y="11" width="3" height="1" fill="#771122"/>
+  <rect x="4" y="12" width="3" height="1" fill="#771122"/>
+
+  <!-- Right wing -->
+  <rect x="28" y="10" width="1" height="1" fill="#881122"/>
+  <rect x="27" y="9" width="1" height="2" fill="#991133"/>
+  <rect x="26" y="8" width="1" height="4" fill="#aa1a33"/>
+  <rect x="25" y="8" width="1" height="5" fill="#bb1d3d"/>
+  <rect x="24" y="9" width="1" height="5" fill="#cc2244"/>
+  <rect x="23" y="10" width="1" height="5" fill="#cc2244"/>
+  <rect x="22" y="11" width="1" height="4" fill="#bb1d3d"/>
+  <rect x="21" y="11" width="1" height="3" fill="#aa1a33"/>
+  <!-- Wing membrane -->
+  <rect x="25" y="11" width="3" height="1" fill="#771122"/>
+  <rect x="24" y="12" width="3" height="1" fill="#771122"/>
+
+  <!-- Body -->
+  <rect x="10" y="10" width="11" height="1" fill="#cc2244"/>
+  <rect x="10" y="11" width="11" height="1" fill="#cc2244"/>
+  <rect x="10" y="12" width="11" height="1" fill="#bb1d3d"/>
+  <rect x="10" y="13" width="11" height="1" fill="#bb1d3d"/>
+  <rect x="10" y="14" width="11" height="1" fill="#aa1a33"/>
+  <rect x="11" y="15" width="9" height="1" fill="#aa1a33"/>
+
+  <!-- Belly -->
+  <rect x="12" y="12" width="7" height="1" fill="#dd6644"/>
+  <rect x="12" y="13" width="7" height="1" fill="#cc5533"/>
+  <rect x="13" y="14" width="5" height="1" fill="#bb4422"/>
+
+  <!-- Body highlight -->
+  <rect x="10" y="10" width="3" height="1" fill="#dd3355"/>
+  <rect x="10" y="11" width="2" height="1" fill="#dd3355"/>
+
+  <!-- Legs -->
+  <rect x="11" y="16" width="2" height="3" fill="#aa1a33"/>
+  <rect x="18" y="16" width="2" height="3" fill="#aa1a33"/>
+  <rect x="10" y="19" width="3" height="1" fill="#991133"/>
+  <rect x="18" y="19" width="3" height="1" fill="#991133"/>
+  <!-- Claws -->
+  <rect x="10" y="20" width="1" height="1" fill="#333333"/>
+  <rect x="12" y="20" width="1" height="1" fill="#333333"/>
+  <rect x="18" y="20" width="1" height="1" fill="#333333"/>
+  <rect x="20" y="20" width="1" height="1" fill="#333333"/>
+
+  <!-- Tail -->
+  <rect x="10" y="15" width="2" height="1" fill="#bb1d3d"/>
+  <rect x="8" y="16" width="3" height="1" fill="#aa1a33"/>
+  <rect x="6" y="17" width="3" height="1" fill="#991133"/>
+  <rect x="5" y="18" width="2" height="1" fill="#881122"/>
+  <rect x="4" y="19" width="2" height="1" fill="#771122"/>
+  <rect x="3" y="19" width="1" height="1" fill="#661122"/>
+
+  <!-- Fire breath particles -->
+  <rect x="14" y="9" width="1" height="1" fill="#ff6622"/>
+  <rect x="16" y="9" width="1" height="1" fill="#ff8833"/>
+  <rect x="15" y="10" width="1" height="1" fill="#ffaa44" opacity="0.7"/>
+</svg>
