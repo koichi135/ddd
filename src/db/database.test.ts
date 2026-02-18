@@ -117,6 +117,7 @@ describe('Game progress CRUD', () => {
       player_dir: 'E',
       boss_defeated: true,
       built_bases: ['0:3,4', '1:2,5'],
+      opened_chests: [],
       last_rested_base: { x: 3, y: 4, floor: 0 },
     })
   })
@@ -181,6 +182,7 @@ describe('Full save / load', () => {
         player_dir: 'S',
         boss_defeated: false,
         built_bases: ['0:3,4'],
+        opened_chests: ['0:8,1'],
         last_rested_base: { x: 3, y: 4, floor: 0 },
       },
       settings: [
@@ -197,6 +199,7 @@ describe('Full save / load', () => {
     expect(loaded.items).toContainEqual({ item_type: 'key', quantity: 1 })
     expect(loaded.progress.floor).toBe(4)
     expect(loaded.progress.boss_defeated).toBe(false)
+    expect(loaded.progress.opened_chests).toEqual(['0:8,1'])
     expect(loaded.progress.last_rested_base).toEqual({ x: 3, y: 4, floor: 0 })
     expect(loaded.settings).toHaveLength(2)
   })

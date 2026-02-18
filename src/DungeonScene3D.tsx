@@ -17,6 +17,7 @@ interface DungeonScene3DProps {
   playerPos: { x: number; y: number }
   playerDir: Direction
   builtBases: Set<string>
+  openedChests: Set<string>
   floor: number
 }
 
@@ -52,39 +53,53 @@ function CameraController({
 function DungeonGeometry({
   dungeonMap,
   builtBases,
+  openedChests,
   floor,
 }: {
   dungeonMap: string[]
   builtBases: Set<string>
+  openedChests: Set<string>
   floor: number
 }) {
-  const { walls, floors, baseSpots, stairsSpots, bossSpots } = useMemo(() => {
-    const w: [number, number][] = []
-    const f: [number, number][] = []
-    const b: [number, number][] = []
-    const s: [number, number][] = []
-    const k: [number, number][] = []
-    for (let y = 0; y < dungeonMap.length; y++) {
-      for (let x = 0; x < dungeonMap[y].length; x++) {
-        const cell = dungeonMap[y][x]
-        if (cell === '#') {
-          w.push([x, y])
-        } else {
-          f.push([x, y])
-          if (cell === 'B') {
-            b.push([x, y])
-          }
-          if (cell === 'S') {
-            s.push([x, y])
-          }
-          if (cell === 'K') {
-            k.push([x, y])
+  const { walls, floors, baseSpots, stairsSpots, bossSpots, chestSpots } =
+    useMemo(() => {
+      const w: [number, number][] = []
+      const f: [number, number][] = []
+      const b: [number, number][] = []
+      const s: [number, number][] = []
+      const k: [number, number][] = []
+      const t: [number, number][] = []
+      for (let y = 0; y < dungeonMap.length; y++) {
+        for (let x = 0; x < dungeonMap[y].length; x++) {
+          const cell = dungeonMap[y][x]
+          if (cell === '#') {
+            w.push([x, y])
+          } else {
+            f.push([x, y])
+            if (cell === 'B') {
+              b.push([x, y])
+            }
+            if (cell === 'S') {
+              s.push([x, y])
+            }
+            if (cell === 'K') {
+              k.push([x, y])
+            }
+            if (cell === 'T') {
+              t.push([x, y])
+            }
           }
         }
       }
-    }
-    return { walls: w, floors: f, baseSpots: b, stairsSpots: s, bossSpots: k }
-  }, [dungeonMap])
+      return {
+        walls: w,
+        floors: f,
+        baseSpots: b,
+        stairsSpots: s,
+        bossSpots: k,
+        chestSpots: t,
+      }
+    }, [dungeonMap])
 
   const wallMeshRef = useRef<THREE.InstancedMesh>(null)
   const floorMeshRef = useRef<THREE.InstancedMesh>(null)
@@ -228,6 +243,48 @@ function DungeonGeometry({
           />
         </group>
       ))}
+
+      {/* Treasure chests */}
+      {chestSpots.map(([x, y]) => {
+        const key = `${floor}:${x},${y}`
+        const opened = openedChests.has(key)
+        return (
+          <group key={`chest-${x}-${y}`}>
+            {/* Chest body */}
+            <mesh position={[x, 0.1, y]}>
+              <boxGeometry args={[0.4, 0.2, 0.3]} />
+              <meshStandardMaterial
+                color={opened ? '#5a4a10' : '#8B6914'}
+                emissive={opened ? '#2a1a00' : '#4a3a0a'}
+                emissiveIntensity={opened ? 0.2 : 0.5}
+              />
+            </mesh>
+            {/* Chest lid */}
+            <mesh
+              position={
+                opened ? [x, 0.25, y - 0.15] : [x, 0.22, y]
+              }
+              rotation={opened ? [-0.8, 0, 0] : [0, 0, 0]}
+            >
+              <boxGeometry args={[0.42, 0.06, 0.32]} />
+              <meshStandardMaterial
+                color={opened ? '#6a5a14' : '#B8860B'}
+                emissive={opened ? '#2a1a00' : '#6a5a10'}
+                emissiveIntensity={opened ? 0.2 : 0.8}
+              />
+            </mesh>
+            {/* Glow for closed chests */}
+            {!opened && (
+              <pointLight
+                position={[x, 0.4, y]}
+                color="#FFD700"
+                intensity={0.8}
+                distance={2.5}
+              />
+            )}
+          </group>
+        )
+      })}
     </>
   )
 }
@@ -290,6 +347,7 @@ export default function DungeonScene3D({
   playerPos,
   playerDir,
   builtBases,
+  openedChests,
   floor,
 }: DungeonScene3DProps) {
   return (
@@ -300,7 +358,12 @@ export default function DungeonScene3D({
       <ambientLight intensity={0.5} color="#889" />
 
       <CameraController playerPos={playerPos} playerDir={playerDir} />
-      <DungeonGeometry dungeonMap={dungeonMap} builtBases={builtBases} floor={floor} />
+      <DungeonGeometry
+        dungeonMap={dungeonMap}
+        builtBases={builtBases}
+        openedChests={openedChests}
+        floor={floor}
+      />
       <Torches dungeonMap={dungeonMap} />
     </Canvas>
   )

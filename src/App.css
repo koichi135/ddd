@@ -134,6 +134,14 @@
   background: #cc2244;
 }
 
+.minimap-chest {
+  background: #d4a017;
+}
+
+.minimap-chest-opened {
+  background: #5a4a10;
+}
+
 .minimap-dir {
   color: #f0c040;
   font-size: 0.6rem;

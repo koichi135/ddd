@@ -26,6 +26,7 @@ export interface GameProgressRow {
   player_dir: Direction
   boss_defeated: boolean
   built_bases: string[]
+  opened_chests: string[]
   last_rested_base: { x: number; y: number; floor: number } | null
 }
 
@@ -98,6 +99,10 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `
 
+const MIGRATIONS = [
+  `ALTER TABLE game_progress ADD COLUMN opened_chests TEXT NOT NULL DEFAULT '[]'`,
+]
+
 // ── Database class ──────────────────────────────────────────
 
 const STORAGE_KEY = 'dungeon-crawler-db'
@@ -127,6 +132,13 @@ export class GameDatabase {
     }
 
     db.run(SCHEMA)
+    for (const sql of MIGRATIONS) {
+      try {
+        db.run(sql)
+      } catch {
+        // Column already exists – skip
+      }
+    }
     const instance = new GameDatabase(db)
     instance.persist()
     return instance
@@ -135,6 +147,13 @@ export class GameDatabase {
   /** Open with an existing sql.js Database instance (for testing) */
   static openWith(db: Database): GameDatabase {
     db.run(SCHEMA)
+    for (const sql of MIGRATIONS) {
+      try {
+        db.run(sql)
+      } catch {
+        // Column already exists – skip
+      }
+    }
     return new GameDatabase(db)
   }
 
@@ -305,7 +324,7 @@ export class GameDatabase {
   getProgress(slot: number): GameProgressRow | null {
     const rows = this.db.exec(
       `SELECT g.floor, g.player_x, g.player_y, g.player_dir,
-              g.boss_defeated, g.built_bases,
+              g.boss_defeated, g.built_bases, g.opened_chests,
               g.last_rested_base_x, g.last_rested_base_y, g.last_rested_base_floor
        FROM game_progress g JOIN saves s ON s.id = g.save_id
        WHERE s.slot = ?`,
@@ -313,7 +332,7 @@ export class GameDatabase {
     )
     if (!rows.length || !rows[0].values.length) return null
     const [
-      floor, px, py, dir, boss, bases,
+      floor, px, py, dir, boss, bases, chests,
       lrbX, lrbY, lrbFloor,
     ] = rows[0].values[0]
 
@@ -324,6 +343,7 @@ export class GameDatabase {
       player_dir: dir as Direction,
       boss_defeated: (boss as number) === 1,
       built_bases: JSON.parse(bases as string) as string[],
+      opened_chests: JSON.parse((chests as string) || '[]') as string[],
       last_rested_base:
         lrbX !== null
           ? { x: lrbX as number, y: lrbY as number, floor: lrbFloor as number }
@@ -349,6 +369,10 @@ export class GameDatabase {
     if (data.built_bases !== undefined) {
       fields.push('built_bases = ?')
       values.push(JSON.stringify(data.built_bases))
+    }
+    if (data.opened_chests !== undefined) {
+      fields.push('opened_chests = ?')
+      values.push(JSON.stringify(data.opened_chests))
     }
     if (data.last_rested_base !== undefined) {
       if (data.last_rested_base === null) {

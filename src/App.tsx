@@ -11,7 +11,7 @@ import ItemMenu from './ItemMenu'
 const NORMAL_FLOORS: string[][] = [
   [
     '##########',
-    '#........#',
+    '#.......T#',
     '#..####..#',
     '#..#..B..#',
     '#..#..#..#',
@@ -24,7 +24,7 @@ const NORMAL_FLOORS: string[][] = [
     '##########',
     '#.....B..#',
     '#.####.#.#',
-    '#.#....#.#',
+    '#.#..T.#.#',
     '#.#.##.#.#',
     '#......#.#',
     '#.####...#',
@@ -35,7 +35,7 @@ const NORMAL_FLOORS: string[][] = [
     '##########',
     '#........#',
     '#.##.###.#',
-    '#..#...#.#',
+    '#..#.T.#.#',
     '#.B#.#.#.#',
     '#..#.#...#',
     '#.##.###.#',
@@ -44,7 +44,7 @@ const NORMAL_FLOORS: string[][] = [
   ],
   [
     '##########',
-    '#........#',
+    '#......T.#',
     '#.#.####.#',
     '#.#......#',
     '#.###.##.#',
@@ -63,7 +63,7 @@ const BOSS_FLOOR: string[] = [
   '######.###',
   '#......#.#',
   '#.######.#',
-  '#........#',
+  '#.....T..#',
   '##########',
 ]
 
@@ -197,9 +197,13 @@ function isBossSpot(map: string[], x: number, y: number) {
   return map[y]?.[x] === 'K'
 }
 
+function isTreasureChest(map: string[], x: number, y: number) {
+  return map[y]?.[x] === 'T'
+}
+
 function isWalkable(map: string[], x: number, y: number) {
   const cell = map[y]?.[x]
-  return cell === '.' || cell === 'B' || cell === 'S' || cell === 'K'
+  return cell === '.' || cell === 'B' || cell === 'S' || cell === 'K' || cell === 'T'
 }
 
 function calcDamage(atk: number, def: number): number {
@@ -253,6 +257,7 @@ function App() {
   const [potions, setPotions] = useState(MAX_POTIONS)
   const [mode, setMode] = useState<GameMode>('title')
   const [builtBases, setBuiltBases] = useState<Set<string>>(new Set())
+  const [openedChests, setOpenedChests] = useState<Set<string>>(new Set())
   const [lastRestedBase, setLastRestedBase] = useState<{
     x: number
     y: number
@@ -291,6 +296,7 @@ function App() {
               player_dir: oldSave.playerDir,
               boss_defeated: oldSave.bossDefeated,
               built_bases: oldSave.builtBases,
+              opened_chests: [],
               last_rested_base: oldSave.lastRestedBase,
             },
             settings: [],
@@ -343,6 +349,7 @@ function App() {
     setSteps(0)
     setPotions(MAX_POTIONS)
     setBuiltBases(new Set())
+    setOpenedChests(new Set())
     setLastRestedBase(null)
     setBossDefeated(false)
     setMessages([
@@ -372,6 +379,7 @@ function App() {
     const potionItem = data.items.find((i) => i.item_type === 'potion')
     setPotions(potionItem?.quantity ?? 0)
     setBuiltBases(new Set(data.progress.built_bases))
+    setOpenedChests(new Set(data.progress.opened_chests))
     setLastRestedBase(data.progress.last_rested_base)
     setBossDefeated(data.progress.boss_defeated)
     setMessages([`${data.player.name}のセーブデータをロードした。冒険を続けよう！`])
@@ -425,6 +433,7 @@ function App() {
           player_dir: playerDir,
           boss_defeated: bossDefeated,
           built_bases: Array.from(builtBases),
+          opened_chests: Array.from(openedChests),
           last_rested_base: lastRestedBase,
         },
         settings: [],
@@ -443,6 +452,7 @@ function App() {
     steps,
     potions,
     builtBases,
+    openedChests,
     lastRestedBase,
     bossDefeated,
     currentSlot,
@@ -478,6 +488,23 @@ function App() {
       return { level: lv, exp: ex }
     },
     [addMessage],
+  )
+
+  /* ── Open treasure chest ── */
+  const openChest = useCallback(
+    (cx: number, cy: number) => {
+      const chestKey = `${floor}:${cx},${cy}`
+      if (openedChests.has(chestKey)) return
+      setOpenedChests((prev) => new Set(prev).add(chestKey))
+      const chestGold = 10 + Math.floor(Math.random() * 20) * (floor + 1)
+      setGold((g) => g + chestGold)
+      addMessage(`宝箱を開けた！ ${chestGold}ゴールドを手に入れた！`)
+      if (Math.random() < 0.5) {
+        setPotions((p) => Math.min(p + 1, MAX_POTIONS))
+        addMessage('ポーションも見つけた！')
+      }
+    },
+    [floor, openedChests, addMessage],
   )
 
   /* ── Start encounter ── */
@@ -541,6 +568,16 @@ function App() {
         return
       }
 
+      /* Treasure chest: auto-open */
+      if (
+        isTreasureChest(dungeonMap, nx, ny) &&
+        !openedChests.has(`${floor}:${nx},${ny}`)
+      ) {
+        addMessage(`ダンジョンを進んだ... (HP: ${newHp}/${maxHp})`)
+        openChest(nx, ny)
+        return
+      }
+
       const msgs: string[] = [`ダンジョンを進んだ... (HP: ${newHp}/${maxHp})`]
       if (isBaseSpot(dungeonMap, nx, ny)) {
         msgs.push('キャンプできそうな場所だ！')
@@ -559,10 +596,11 @@ function App() {
         return
       }
 
-      /* Random encounter check */
+      /* Random encounter check (not on special tiles) */
       if (
         !isBaseSpot(dungeonMap, nx, ny) &&
         !isStairs(dungeonMap, nx, ny) &&
+        !isTreasureChest(dungeonMap, nx, ny) &&
         Math.random() < ENCOUNTER_RATE
       ) {
         setTimeout(() => startBattle(), 300)
@@ -579,10 +617,12 @@ function App() {
     dungeonMap,
     floor,
     builtBases,
+    openedChests,
     bossDefeated,
     addMessage,
     startBattle,
     startBossBattle,
+    openChest,
   ])
 
   const moveBackward = useCallback(() => {
@@ -613,6 +653,16 @@ function App() {
         return
       }
 
+      /* Treasure chest: auto-open */
+      if (
+        isTreasureChest(dungeonMap, nx, ny) &&
+        !openedChests.has(`${floor}:${nx},${ny}`)
+      ) {
+        addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
+        openChest(nx, ny)
+        return
+      }
+
       addMessage(`後退した... (HP: ${newHp}/${maxHp})`)
 
       /* Boss encounter (immediate) */
@@ -624,6 +674,7 @@ function App() {
       if (
         !isBaseSpot(dungeonMap, nx, ny) &&
         !isStairs(dungeonMap, nx, ny) &&
+        !isTreasureChest(dungeonMap, nx, ny) &&
         Math.random() < ENCOUNTER_RATE
       ) {
         setTimeout(() => startBattle(), 300)
@@ -640,10 +691,12 @@ function App() {
     dungeonMap,
     floor,
     builtBases,
+    openedChests,
     bossDefeated,
     addMessage,
     startBattle,
     startBossBattle,
+    openChest,
   ])
 
   const turnLeft = useCallback(() => {
@@ -952,6 +1005,7 @@ function App() {
       setPotions(MAX_POTIONS)
       setMode('dungeon')
       setBuiltBases(new Set())
+      setOpenedChests(new Set())
       setLastRestedBase(null)
       setBossDefeated(false)
       setEnemy(null)
@@ -989,6 +1043,7 @@ function App() {
       setPotions(MAX_POTIONS)
       setMode('dungeon')
       setBuiltBases(new Set())
+      setOpenedChests(new Set())
       setLastRestedBase(null)
       setBossDefeated(false)
       setEnemy(null)
@@ -1145,6 +1200,7 @@ function App() {
                 playerPos={playerPos}
                 playerDir={playerDir}
                 builtBases={builtBases}
+                openedChests={openedChests}
                 floor={floor}
               />
               {/* Minimap overlay */}
@@ -1157,12 +1213,20 @@ function App() {
                       const isBase = cell === 'B'
                       const isStairCell = cell === 'S'
                       const isBossCell = cell === 'K'
+                      const isChest = cell === 'T'
                       const built = builtBases.has(`${floor}:${x},${y}`)
+                      const chestOpened = openedChests.has(
+                        `${floor}:${x},${y}`,
+                      )
                       let cls = 'minimap-cell '
                       if (isPlayer) cls += 'minimap-player'
                       else if (cell === '#') cls += 'minimap-wall'
                       else if (isBossCell) cls += 'minimap-boss'
                       else if (isStairCell) cls += 'minimap-stairs'
+                      else if (isChest && !chestOpened)
+                        cls += 'minimap-chest'
+                      else if (isChest && chestOpened)
+                        cls += 'minimap-chest-opened'
                       else if (isBase && built) cls += 'minimap-base-built'
                       else if (isBase) cls += 'minimap-base-spot'
                       else cls += 'minimap-floor'
